@@ -1,0 +1,63 @@
+{
+  "info": {
+    "_postman_id": "b734ed70-53fe-4c77-a8f2-2150e595c231",
+    "name": "Sistema Senso — demonstração local",
+    "description": "API do MVP acadêmico Senso. Importar, selecionar a conta demonstrativa e manter o cookie jar habilitado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8001" },
+    { "key": "alertId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Serviço",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{baseUrl}}/health" } },
+        { "name": "OpenAPI", "request": { "method": "GET", "url": "{{baseUrl}}/openapi.json" } }
+      ]
+    },
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Entrar na conta de demonstração",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Sessão iniciada', () => pm.response.to.have.status(200));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"demo@senso.local\",\n  \"password\": \"Senso-Demo-2026!\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        { "name": "Sessão atual", "request": { "method": "GET", "url": "{{baseUrl}}/auth/session" } },
+        { "name": "Sair", "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout" } }
+      ]
+    },
+    {
+      "name": "Monitoramento",
+      "item": [
+        { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/dashboard" } },
+        { "name": "Residência", "request": { "method": "GET", "url": "{{baseUrl}}/residence" } },
+        { "name": "Dispositivos", "request": { "method": "GET", "url": "{{baseUrl}}/devices" } },
+        { "name": "Histórico — 7 dias", "request": { "method": "GET", "url": "{{baseUrl}}/history?days=7" } }
+      ]
+    },
+    {
+      "name": "Ocorrências",
+      "item": [
+        { "name": "Alertas ativos", "request": { "method": "GET", "url": "{{baseUrl}}/alerts?status=ativos" } },
+        { "name": "Reconhecer alerta", "request": { "method": "POST", "url": "{{baseUrl}}/alerts/{{alertId}}/acknowledge" } },
+        { "name": "Resolver alerta", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"note\": \"Verificação demonstrativa concluída.\"\n}" }, "url": "{{baseUrl}}/alerts/{{alertId}}/resolve" } }
+      ]
+    },
+    {
+      "name": "Simulador",
+      "item": [
+        { "name": "Estado", "request": { "method": "GET", "url": "{{baseUrl}}/simulation/state" } },
+        { "name": "Iniciar possível queda", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"scenario\": \"possivel_queda\"\n}" }, "url": "{{baseUrl}}/simulation/run" } },
+        { "name": "Restaurar condições", "request": { "method": "POST", "url": "{{baseUrl}}/simulation/restore" } }
+      ]
+    }
+  ]
+}
