@@ -1,23 +1,24 @@
 # Deploy do Sistema Senso
 
-Este documento prepara a publicação; não cria recursos nem publica o sistema.
+Este documento registra a configuração de publicação do Sistema Senso. A conta e o projeto Northflank e as contas Cloudflare/GitHub são administrados pelo responsável.
 
 ## Arquitetura escolhida
 
 - **Front-end:** Cloudflare Pages, com React/Vite estático.
-- **API:** hospedagem externa que execute Python 3.12 e mantenha um processo ASGI ativo.
-- **Banco:** PostgreSQL hospedado, acessível somente pela API.
+- **API:** serviço Northflank com Python 3.12 e processo ASGI ativo.
+- **Banco:** addon PostgreSQL no mesmo projeto/região Northflank, acessível somente pela API.
 
 Essa opção preserva o FastAPI, SQLAlchemy, Psycopg e o worker de simulação atual. A simulação avança em uma tarefa iniciada no ciclo de vida da API e persiste cada etapa. Por isso, a API precisa permanecer ativa; o front-end estático não substitui esse processo.
 
 Cloudflare documenta suporte a FastAPI em Python Workers, mas o exemplo atual requer Python 3.13 ou superior, enquanto este projeto usa Python 3.12. Embora Hyperdrive documente suporte ao Psycopg e ao SQLAlchemy síncrono, a execução do worker contínuo e o conjunto de dependências do Senso ainda não foram validados nesse runtime. Migrar agora acrescentaria risco sem necessidade. [FastAPI em Python Workers](https://developers.cloudflare.com/workers/languages/python/packages/fastapi/), [Hyperdrive com Python Workers](https://developers.cloudflare.com/hyperdrive/examples/python-workers/).
 
-## Estado desta cópia
+## Estado da publicação
 
-- O build do front-end é preparado para Pages.
-- A API e o PostgreSQL remoto ainda dependem de hospedagens escolhidas pelo responsável.
-- Não há `.git` nesta pasta; a integração Git de Pages depende de um repositório criado e autorizado pelo responsável. Nenhum repositório foi criado ou publicado nesta auditoria.
-- Não foi configurado domínio, conta Cloudflare, API remota, banco remoto ou segredo de produção.
+- O repositório privado `ygor-marangoni/sistema-senso-mvp` é a origem da publicação.
+- O diretório `backend` contém um Dockerfile para o serviço FastAPI no Northflank.
+- Os recursos remotos ainda precisam ser criados no painel autenticado; esta execução não consegue acessar a sessão visual do navegador do responsável.
+- URLs, domínio, PostgreSQL remoto e segredos de produção só poderão ser registrados depois que os recursos forem criados no painel. Não coloque seus valores neste arquivo.
+- Use apenas o plano Sandbox gratuito e a região `US Central`; a região South America East exige upgrade. Não selecione Pay as you go nem habilite faturamento.
 
 ## Cloudflare Pages
 
@@ -46,17 +47,25 @@ npm run build
 
 O endereço `.invalid` acima é apenas para validar a compilação. Não o use no Pages. O front-end usa carregamento SPA e `dist` deve conter o `index.html` e os assets versionados pelo Vite.
 
+## Northflank Sandbox
+
+O plano Sandbox documenta dois serviços, dois jobs e um addon com até US$ 20/mês em recursos gratuitos, sempre ativos e sem suspensão por inatividade. A documentação de preços diz que o Sandbox não exige cartão; se o fluxo de criação pedir método de pagamento ou upgrade para Pay as you go, pare sem preencher. Confira os limites e o saldo gratuito no painel antes de criar cada recurso. [Planos e quotas Northflank](https://northflank.com/pricing).
+
+Crie o banco e a API na mesma região `US Central`, que está disponível no Sandbox. Não selecione `South America East` se o painel indicar upgrade. Crie um projeto e depois:
+
+1. Crie um addon PostgreSQL com TLS habilitado, banco chamado `senso`, região `US Central` e o menor plano incluído no Sandbox. Não habilite acesso público.
+2. Crie um grupo de secrets para a API. Use as credenciais privadas do addon e monte `DATABASE_URL` no formato `postgresql+psycopg://<usuario>:<senha>@<host>:<porta>/senso?sslmode=require`. Codifique caracteres especiais da senha como URL-encoding. O banco deve continuar privado; a API e o banco ficam no mesmo projeto.
+3. Crie um serviço combinado ligado ao repositório e à branch `main`. Configure build Dockerfile, diretório `backend` como contexto e `backend/Dockerfile` como arquivo. Configure a porta pública `8001` em HTTP e readiness path `/health/ready`.
+4. Configure `APP_ENV=production`, `DATABASE_URL`, `SECRET_KEY` aleatória (32 caracteres ou mais), `COOKIE_SECURE=true`, `DEMO_LOGIN_ENABLED=false`, `CORS_ORIGINS=https://<url-do-pages>` e `SIMULATION_INTERVAL_SECONDS=1`. Guarde segredos no painel Northflank; não os coloque no repositório.
+5. Aguarde o addon ficar `running` antes de iniciar o serviço. O Dockerfile aplica `alembic upgrade head` e inicia Uvicorn; a primeira inicialização cria somente as tabelas do Senso nesse banco `senso` novo.
+
+O orçamento de até US$ 20/mês é uma cota de uso, não garantia de que qualquer tamanho de recurso seja gratuito. Se o painel mostrar custo ou pedir faturamento, não confirme; reduza o compute para o limite gratuito disponível. PostgreSQL é um addon e a API é um serviço, dentro dos limites documentados do Sandbox. [Criar serviço pelo repositório](https://northflank.com/docs/v1/application/getting-started/build-and-deploy-your-code), [PostgreSQL Northflank](https://northflank.com/docs/v1/application/databases-and-persistence/deploy-databases-on-northflank/deploy-postgresql-on-northflank).
+
 ## API FastAPI
 
-Use um serviço Python/ASGI com processo persistente. Configure a pasta `backend` como diretório de trabalho e instale `requirements.txt`. O comando de inicialização depende da variável de porta do provedor; em ambientes Linux que fornecem `PORT`, o formato usual é:
+O serviço Northflank usa o Dockerfile em `backend/Dockerfile`, com contexto `backend`. O container instala `requirements.txt`, aplica migrações Alembic e inicia Uvicorn na porta `PORT` (8001 por padrão).
 
-```bash
-python -m pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port "$PORT"
-```
-
-Confirme no painel do provedor qual comando e diretório de trabalho são aceitos antes de aplicar migrações. Execute `alembic upgrade head` somente depois de revisar `DATABASE_URL`, confirmar que aponta para o PostgreSQL remoto dedicado ao Senso e obter um backup do banco de destino. Não use o banco Triton nem o PostgreSQL local como banco de produção.
+Confirme no painel que o recurso é novo, privado, na região gratuita e que `DATABASE_URL` referencia o banco Northflank recém-criado `senso` antes de deixar o primeiro deploy aplicar migrações. Não use o banco Triton nem o PostgreSQL local como banco de produção.
 
 Configure as variáveis no serviço de API:
 
@@ -95,15 +104,14 @@ Não foi adicionado `_headers` ou CSP genérico. Pages já fornece cabeçalhos p
 
 ## Publicação e verificação
 
-1. No Pages, configure raiz `frontend`, build `npm run build`, saída `dist` e `VITE_API_URL` real.
-2. No host Python, configure o backend, os segredos, `CORS_ORIGINS` e `DEMO_LOGIN_ENABLED=false`.
-3. No PostgreSQL remoto, confirme identidade, TLS, credenciais e backup; depois revise e aplique as migrações.
-4. Verifique `/health/live` e `/health/ready` no host da API.
-5. Faça o build no Pages e confirme a URL final da aplicação e da API.
-6. No navegador, valide login/cadastro, persistência após atualizar, dashboard, residência, histórico, alertas, configurações, agenda e todos os cenários de demonstração. Confirme console e rede sem falhas.
-7. Confirme que a produção não exibe o login demonstrativo, que cookies são `Secure` e `HttpOnly`, que CORS aceita somente o Pages e que nenhuma resposta autenticada está em cache público.
+1. No Northflank, crie o addon e o serviço conforme a seção anterior, sem cartão, upgrade ou custos exibidos.
+2. Teste `/health/live` e `/health/ready` no domínio gerado pelo serviço. Confirme que o banco é o addon privado `senso`.
+3. Crie Pages conectado à branch `main`, raiz `frontend`, build `npm run build`, saída `dist`, Node 20+ e variável pública `VITE_API_URL=https://<url-da-api>`.
+4. Quando Pages atribuir a URL, atualize `CORS_ORIGINS` para a origem exata, HTTPS, e deixe o serviço reconstruir.
+5. Valide login/cadastro, persistência após atualizar, dashboard, residência, histórico, alertas, configurações, agenda e seis cenários. Confirme console/rede sem falhas.
+6. Confirme cookies `Secure` e `HttpOnly`, CORS limitado ao Pages e que a produção não expõe atalho demonstrativo nem guarda respostas autenticadas em cache público.
 
-Não existe comando de publicação executado ou URL de produção nesta entrega. A publicação depende de repositório, contas/provedores, domínio, segredos e PostgreSQL remoto configurados pelo responsável.
+O código e o repositório estão preparados, mas não declare a aplicação publicada até os dois recursos, o build e as verificações HTTP estarem operacionais. Não existe URL de produção confirmada neste documento.
 
 ## Diagnóstico
 

@@ -98,7 +98,7 @@ Abra `http://localhost:5174`. Se necessário, copie `frontend/.env.example` para
 
 ### Conta demonstrativa local
 
-No desenvolvimento, a tela de entrada tem um botão para acessar os dados fictícios. O botão e o preenchimento de credenciais aparecem somente no Vite em modo de desenvolvimento. Em ambientes compartilhados, configure `DEMO_LOGIN_ENABLED=false`; a API recusa o login e a reinicialização da conta demonstrativa. Não publique as credenciais locais.
+No desenvolvimento, a tela de entrada tem um botão para acessar os dados fictícios pela rota `/auth/demo`; nenhuma credencial demonstrativa é embutida no JavaScript do navegador. A rota só funciona em ambiente local com `DEMO_LOGIN_ENABLED=true`. Em ambientes compartilhados, configure `DEMO_LOGIN_ENABLED=false`; a API recusa a conta compartilhada e a reinicialização da demonstração.
 
 ## Demonstrar os cenários
 
@@ -127,7 +127,7 @@ Na pasta `frontend`, execute `npm test` e `npm run build`. Na pasta `backend`, e
 
 ## Reaproveitamento e limpeza da cópia
 
-Foram mantidos a estrutura React/Vite e FastAPI, a família Fustat, padrões de sessão, autenticação com Argon2, Axios, navegação lateral, responsividade e padrões de carregamento/feedback da base local. O domínio hídrico, integrações, mapas rurais, uploads de imagens e suas dependências, testes, migrações, assets e documentação foram removidos desta cópia. A aplicação não está vinculada a um remoto Git.
+Foram mantidos a estrutura React/Vite e FastAPI, a família Fustat, padrões de sessão, autenticação com Argon2, Axios, navegação lateral, responsividade e padrões de carregamento/feedback da base local. O domínio hídrico, integrações, mapas rurais, uploads de imagens e suas dependências foram removidos desta cópia. O código está no repositório privado `ygor-marangoni/sistema-senso-mvp`; consulte `docs/DEPLOY.md` para o estado e as instruções de publicação.
 
 ## Modo demonstração residencial
 

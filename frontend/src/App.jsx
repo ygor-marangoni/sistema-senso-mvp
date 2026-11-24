@@ -36,8 +36,8 @@ function AuthPage({ onLogin, busy, authError, clearError }) {
   async function enterDemo() {
     if (!demoLoginEnabled) return
     setDemoBusy(true)
-    await onLogin('login', { email: 'demo@senso.local', password: 'Senso-Demo-2026!' })
-    setDemoBusy(false)
+    try { await onLogin('demo') }
+    finally { setDemoBusy(false) }
   }
   return <main className="auth-page">
     <section className="auth-panel">
@@ -48,8 +48,8 @@ function AuthPage({ onLogin, busy, authError, clearError }) {
       </div>
       <form className="auth-form" key={mode} onSubmit={submit}>
         {mode === 'register' && <label className="field"><span>Seu nome</span><input name="name" autoComplete="name" required minLength={2} placeholder="Como podemos chamar você?" /></label>}
-        <label className="field"><span>E-mail</span><input name="email" type="email" autoComplete="email" required defaultValue={mode === 'login' && demoLoginEnabled ? 'demo@senso.local' : ''} placeholder="voce@exemplo.com" /></label>
-        <div className="field"><label htmlFor="password">Senha</label><div className="password-input-wrap"><input id="password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={mode === 'register' ? 12 : 1} defaultValue={mode === 'login' && demoLoginEnabled ? 'Senso-Demo-2026!' : ''} placeholder={mode === 'register' ? 'Mínimo de 12 caracteres' : 'Sua senha'} /><button type="button" className="password-toggle" onClick={() => setPasswordVisible((value) => !value)} aria-label={passwordVisible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={passwordVisible}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
+        <label className="field"><span>E-mail</span><input name="email" type="email" autoComplete="email" required placeholder="voce@exemplo.com" /></label>
+        <div className="field"><label htmlFor="password">Senha</label><div className="password-input-wrap"><input id="password" name="password" type={passwordVisible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={mode === 'register' ? 12 : 1} placeholder={mode === 'register' ? 'Mínimo de 12 caracteres' : 'Sua senha'} /><button type="button" className="password-toggle" onClick={() => setPasswordVisible((value) => !value)} aria-label={passwordVisible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={passwordVisible}>{passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>
         {mode === 'register' && <div className="field"><label htmlFor="password_confirmation">Confirmar senha</label><div className="password-input-wrap"><input id="password_confirmation" name="password_confirmation" type={confirmationVisible ? 'text' : 'password'} autoComplete="new-password" required minLength={12} placeholder="Digite a senha novamente" /><button type="button" className="password-toggle" onClick={() => setConfirmationVisible((value) => !value)} aria-label={confirmationVisible ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'} aria-pressed={confirmationVisible}>{confirmationVisible ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></div>}
         {authError && <p className="form-message error" role="alert">{authError}</p>}
         <button className="button primary full" type="submit" disabled={busy || demoBusy}>{busy ? 'Conectando…' : mode === 'login' ? 'Entrar na minha conta' : 'Criar conta'}</button>
@@ -177,10 +177,10 @@ function App() {
         if (!active) return
         let medications = medicationResult.status === 'fulfilled' ? medicationResult.value.data : []
         let appointments = appointmentResult.status === 'fulfilled' ? appointmentResult.value.data : []
-        if (user.email === 'demo@senso.local' && medicationResult.status === 'rejected') {
+        if (user.is_demo && medicationResult.status === 'rejected') {
           try { medications = JSON.parse(localStorage.getItem('senso-demo-agenda-medicamentos') || '[]') } catch { medications = [] }
         }
-        if (user.email === 'demo@senso.local' && appointmentResult.status === 'rejected') {
+        if (user.is_demo && appointmentResult.status === 'rejected') {
           try { appointments = JSON.parse(localStorage.getItem('senso-demo-agenda-consultas') || '[]') } catch { appointments = [] }
         }
         const parts = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date())
@@ -324,7 +324,7 @@ function App() {
     setAuthBusy(true)
     setAuthError('')
     try {
-      const { data: account } = mode === 'login' ? await authService.login(data) : await authService.register(data)
+      const { data: account } = mode === 'demo' ? await authService.demo() : mode === 'login' ? await authService.login(data) : await authService.register(data)
       const { data: session } = await authService.session()
       if (!session.authenticated || session.user?.id !== account.id) {
         setAuthError('Não foi possível iniciar sua sessão. Tente novamente em instantes.')
@@ -381,7 +381,7 @@ function App() {
     overview: <OverviewPage {...pageProps} onNavigate={navigate} />,
     residence: <ResidencePage {...pageProps} />,
     routine: <RoutinePage {...pageProps} />,
-    medications: <MedicationPage notify={notify} demoAccount={user?.email === 'demo@senso.local'} />,
+    medications: <MedicationPage notify={notify} demoAccount={user?.is_demo === true} />,
     alerts: <AlertsPage {...pageProps} />,
     devices: <DevicesPage {...pageProps} />,
     settings: <SettingsPage {...pageProps} />,

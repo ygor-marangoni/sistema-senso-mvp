@@ -11,6 +11,9 @@ export const api = axios.create({
 
 export function errorMessage(error) {
   const detail = error?.response?.data?.detail
+  if (error?.response?.status === 409 && typeof detail === 'string' && detail.toLowerCase().includes('retomar')) {
+    return 'Esta simulação já terminou. Inicie novamente.'
+  }
   if (detail === 'Not Found' || detail === 'Internal Server Error') return 'Não foi possível concluir agora. Tente novamente em instantes.'
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) return detail.map((entry) => entry.msg).join('; ')

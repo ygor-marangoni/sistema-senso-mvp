@@ -1,8 +1,10 @@
 import * as THREE from 'three'
+import { createVisualClock } from './visualClock'
 
 // Geometria, materiais e coreografia preservados de senso-demo.html.
 export function createSensoScene(container) {
-let scenario='fall', elapsed=0;
+let scenario='fall', elapsed=0, targetElapsed=0, simulationSpeed=1, currentRunId=null;
+const visualTime = createVisualClock()
 const rooms=[{name:'Sala',x:-2.7,z:2.0},{name:'Cozinha',x:2.7,z:2.0},{name:'Quarto',x:-2.7,z:-2.1},{name:'Banheiro',x:2.7,z:-2.1}];
 // Keep the sensor pucks on unobstructed floor patches in the four rooms.
 const sensors=[[-.42,3.65],[4.9,2.25],[-.55,-2.85],[.4,-2.1]];
@@ -93,6 +95,7 @@ function responders(){
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFShadowMap
   renderer.shadowMap.autoUpdate = false
+  renderer.shadowMap.needsUpdate = true
   container.appendChild(canvas)
   const scene = new THREE.Scene()
   const camera = new THREE.OrthographicCamera(-8, 8, 5, -5, .1, 100)
@@ -119,34 +122,13 @@ function responders(){
       mesh.quaternion.setFromUnitVectors(up, b.sub(a).normalize())
     } else mesh.rotation.set(shape.rotX||0,shape.rotY||0,0,'YXZ')
   }
-  function mesh(shape) {
+  function mesh(shape, dynamic = false) {
     const item = new THREE.Mesh(geos[shape.kind === 'link' ? 'ellipsoid' : shape.kind], material(shape.c))
-    place(item,shape); item.castShadow = !shape.floor; item.receiveShadow = true; scene.add(item)
+    place(item,shape); item.castShadow = !shape.floor && !dynamic; item.receiveShadow = !dynamic; scene.add(item)
     return item
   }
-  function staticInstances() {
-    const buckets = new Map(), transform = new THREE.Object3D()
-    for (const shape of shapes) {
-      const key = `${shape.kind}|${shape.c}|${!!shape.floor}`
-      if (!buckets.has(key)) buckets.set(key, { kind: shape.kind, color: shape.c, floor: !!shape.floor, shapes: [] })
-      buckets.get(key).shapes.push(shape)
-    }
-    for (const bucket of buckets.values()) {
-      const batch = new THREE.InstancedMesh(geos[bucket.kind], material(bucket.color), bucket.shapes.length)
-      bucket.shapes.forEach((shape, index) => {
-        place(transform, shape)
-        transform.updateMatrix()
-        batch.setMatrixAt(index, transform.matrix)
-      })
-      batch.instanceMatrix.setUsage(THREE.StaticDrawUsage)
-      batch.castShadow = !bucket.floor
-      batch.receiveShadow = true
-      batch.computeBoundingSphere()
-      scene.add(batch)
-    }
-  }
-  staticInstances()
-  const person = character().map(mesh), crew = []
+  shapes.forEach(shape => mesh(shape))
+  const person = character().map(shape => mesh(shape, true)), crew = []
   const dotGeometry = new THREE.SphereGeometry(.065,16,10), ringGeometry = new THREE.RingGeometry(.91,1,48)
   const rings = sensors.map(([x,z]) => {
     const group = new THREE.Group(); group.position.set(x,.38,z); scene.add(group)
@@ -157,7 +139,7 @@ function responders(){
   const labelCanvas=document.createElement('canvas'); labelCanvas.width=256; labelCanvas.height=64
   const ctx=labelCanvas.getContext('2d'), texture=new THREE.CanvasTexture(labelCanvas)
   const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false})); sprite.scale.set(1.75,.44,1); scene.add(sprite)
-  let angle=.68,elev=.75,zoom=1,drag=null, frame=0, destroyed=false, animationActive=false, roomIndex=0, severity='normal', offline=false, visualClock=0, lastRoom='', lastShadowUpdate=-Infinity
+  let angle=.68,elev=.75,zoom=1,drag=null, frame=0, destroyed=false, animationActive=false, roomIndex=0, severity='normal', offline=false, visualClock=0, lastRoom=''
   const colors={normal:'#278563',analysis:'#ad7b2c',attention:'#ad7b2c',critical:'#b8463e',response:'#277e86'}
   function resize() {
     const w=container.clientWidth,h=container.clientHeight
@@ -170,16 +152,16 @@ function responders(){
   function draw(now=performance.now()) {
     frame = 0
     if (destroyed || document.hidden) return
+    elapsed = visualTime.tick(now)
     camera.position.set(Math.sin(angle)*18*Math.cos(elev),18*Math.sin(elev),Math.cos(angle)*18*Math.cos(elev)); camera.lookAt(0,.15,0)
     character().forEach((shape,i)=>place(person[i],shape))
     const figures=responders()
-    figures.forEach((shape,i)=>{ if (!crew[i]) crew[i]=mesh(shape); crew[i].visible=true; place(crew[i],shape) })
+    figures.forEach((shape,i)=>{ if (!crew[i]) crew[i]=mesh(shape,true); crew[i].visible=true; place(crew[i],shape) })
     for(let i=figures.length;i<crew.length;i++) crew[i].visible=false
     const color=colors[severity]||colors.normal, room=rooms[Math.max(0,Math.min(3,roomIndex))]
     sprite.position.set(room.x,2.07,room.z)
     if(lastRoom!==room.name+color){lastRoom=room.name+color;ctx.clearRect(0,0,256,64);ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(4,4,248,56,12);ctx.fill();ctx.fillStyle=color;ctx.font='600 29px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(room.name,128,32);texture.needsUpdate=true}
     rings.forEach((sensor,i)=>{const off=offline&&i===1, col=off?'#ad7b2c':i===roomIndex&&severity!=='normal'?color:colors.normal;sensor.center.material.color.set(col);sensor.waves.forEach((ring,j)=>{const phase=(visualClock*.7+j/2)%1;ring.scale.setScalar(.12+phase*.6);ring.material.color.set(col);ring.material.opacity=off?0:.34*(1-phase)})})
-    if (now-lastShadowUpdate >= 80) { renderer.shadowMap.needsUpdate=true; lastShadowUpdate=now }
     renderer.render(scene,camera)
     if(animationActive)requestDraw()
   }
@@ -198,7 +180,16 @@ function responders(){
   canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('wheel',wheel,{passive:false});canvas.addEventListener('keydown',key);canvas.addEventListener('webglcontextlost',lost);document.addEventListener('visibilitychange',onVisibilityChange)
   resize();requestDraw()
   return {
-    update(state){ const nextScenario=['fall','normal','idle','heat','offline','routine'].includes(state.scenario)?state.scenario:'fall',nextElapsed=Math.max(0,state.elapsed||0),nextRoom=state.roomIndex??0,nextSeverity=state.severity||'normal',nextOffline=!!state.offline,nextClock=state.visualClock??nextElapsed,nextRunning=!!state.running;const changed=nextScenario!==scenario||nextElapsed!==elapsed||nextRoom!==roomIndex||nextSeverity!==severity||nextOffline!==offline||nextClock!==visualClock;scenario=nextScenario;elapsed=nextElapsed;roomIndex=nextRoom;severity=nextSeverity;offline=nextOffline;visualClock=nextClock;animationActive=nextRunning;if(changed||animationActive)requestDraw() },
+    update(state){
+      const nextScenario=['fall','normal','idle','heat','offline','routine'].includes(state.scenario)?state.scenario:'fall'
+      const nextElapsed=Math.max(0,state.elapsed||0),nextRoom=state.roomIndex??0,nextSeverity=state.severity||'normal',nextOffline=!!state.offline,nextClock=state.visualClock??nextElapsed,nextRunning=!!state.running,nextSpeed=Math.max(.5,Math.min(2,state.speed||1))
+      const scenarioChanged=nextScenario!==scenario
+      const changed=scenarioChanged||nextElapsed!==targetElapsed||nextRoom!==roomIndex||nextSeverity!==severity||nextOffline!==offline||nextClock!==visualClock||nextRunning!==animationActive||nextSpeed!==simulationSpeed||state.runId!==currentRunId
+      currentRunId=state.runId
+      scenario=nextScenario;targetElapsed=nextElapsed;roomIndex=nextRoom;severity=nextSeverity;offline=nextOffline;visualClock=nextClock;animationActive=nextRunning;simulationSpeed=nextSpeed
+      visualTime.update({runId:state.runId,scenario:nextScenario,elapsed:nextElapsed,running:nextRunning,speed:nextSpeed})
+      if(changed||animationActive)requestDraw()
+    },
     resetCamera(){angle=.68;elev=.75;zoom=1;resize()},
     topView(){elev=1.54;resize()},
     dispose(){destroyed=true;cancelAnimationFrame(frame);document.removeEventListener('visibilitychange',onVisibilityChange);observer.disconnect();canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',pointerUp);canvas.removeEventListener('wheel',wheel);canvas.removeEventListener('keydown',key);canvas.removeEventListener('webglcontextlost',lost);scene.traverse(object=>{if(object.isMesh||object.isSprite){if(object.material&&!Array.from(materials.values()).includes(object.material)) {const list=Array.isArray(object.material)?object.material:[object.material];list.forEach(m=>m.dispose())}}});Object.values(geos).forEach(g=>g.dispose());dotGeometry.dispose();ringGeometry.dispose();materials.forEach(m=>m.dispose());texture.dispose();renderer.dispose();canvas.remove()}

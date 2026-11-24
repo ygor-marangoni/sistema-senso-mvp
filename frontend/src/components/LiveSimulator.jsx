@@ -6,6 +6,7 @@ import { ActivityChart, EnvironmentChart } from './DataCharts'
 import CustomSelect from './CustomSelect'
 import { createSensoScene } from '../demo/sensoScene'
 import { createSensoFallback } from '../demo/sensoFallback'
+import { estimatePlaybackTime } from '../demo/playbackTime'
 import './LiveSimulator.css'
 
 const scenarios = [
@@ -37,7 +38,7 @@ function ResidenceScene({ snapshot }) {
   const scene = useRef(null)
   const shown = useRef({ elapsed: 0, scenario: null })
   const latest = useRef(snapshot)
-  const timing = useRef({ performanceAt: performance.now(), wallAt: Date.now() })
+  const timing = useRef(performance.now())
   const drawFrame = useRef(null)
   latest.current = snapshot
   const [error, setError] = useState('')
@@ -59,9 +60,9 @@ function ResidenceScene({ snapshot }) {
     return () => { element.removeEventListener('senso-webgl-lost', lost); scene.current?.dispose(); scene.current = null }
   }, [])
   useEffect(() => {
-    timing.current = { performanceAt: performance.now(), wallAt: Date.now() }
-    if (latest.current?.status !== 'rodando') drawFrame.current?.(performance.now())
-  }, [snapshot])
+    timing.current = performance.now()
+    drawFrame.current?.(performance.now())
+  }, [snapshot.run_id, snapshot.scenario_id, snapshot.status, snapshot.elapsed, snapshot.speed, snapshot.step, snapshot.duration])
   useEffect(() => {
     let frame
     function renderAt(now) {
@@ -69,15 +70,9 @@ function ResidenceScene({ snapshot }) {
       const scenario = state.scenario_id || 'fall'
       const base = Math.max(0, state.elapsed || 0)
       const speed = state.speed || 1
-      let elapsed = base
-      if (state.status === 'rodando' && state.next_step_at) {
-        const delta = Math.max(0, (now - timing.current.performanceAt) / 1000)
-        const untilConfirmedStep = Math.max(0, (Date.parse(state.next_step_at) - timing.current.wallAt) / 1000)
-        elapsed += Math.min(delta, untilConfirmedStep) * speed
-      }
-      elapsed = Math.min(elapsed, state.duration || 34)
+      const elapsed = estimatePlaybackTime(state, (now - timing.current) / 1000)
       shown.current = { scenario, elapsed }
-      if (!document.hidden) scene.current?.update({ scenario, elapsed, roomIndex: state.room_index || 0, severity: state.severity || 'normal', offline: !!state.offline, running: state.status === 'rodando', visualClock: state.status === 'rodando' ? elapsed : base })
+      if (!document.hidden) scene.current?.update({ scenario, runId: state.run_id, elapsed, roomIndex: state.room_index || 0, severity: state.severity || 'normal', offline: !!state.offline, running: state.status === 'rodando', speed, visualClock: state.status === 'rodando' ? elapsed : base })
       if (state.status === 'rodando' && !document.hidden && !frame) frame = requestAnimationFrame(tick)
     }
     function tick(now) { frame = 0; renderAt(now) }
@@ -147,6 +142,8 @@ export default function LiveSimulator({ simulation, perform, history }) {
   const safePhase = id === 'fall' && (!snapshot.fall_confirmed || !snapshot.last_alert_id) ? Math.min(phase, 3) : phase
   const current = fallPhases[safePhase]
   const hasRun = !!snapshot.run_id
+  const canResume = hasRun && paused && Number(snapshot.step || 0) < Number(snapshot.scenario_count ?? Number.POSITIVE_INFINITY)
+  const canAdvance = hasRun && Number(snapshot.step || 0) < Number(snapshot.scenario_count ?? Number.POSITIVE_INFINITY)
   const events = history?.events || []
   const allReadings = history?.readings || []
   const readings = snapshot.run_id && snapshot.started_at ? allReadings.filter((reading) => new Date(reading.observed_at) >= new Date(snapshot.started_at)) : allReadings
@@ -170,13 +167,13 @@ export default function LiveSimulator({ simulation, perform, history }) {
   }
   function play() {
     if (running) return action(simulationService.pause, 'Simulação pausada.')
-    if (paused && hasRun) return action(simulationService.resume, 'Simulação retomada.')
+    if (canResume) return action(simulationService.resume, 'Simulação retomada.')
     return action(startScenario, 'Cenário iniciado.', selected)
   }
   function choose(value) { setSelected(value); action(startScenario, 'Cenário iniciado.', value) }
   const title = id === 'fall' ? current[2] : (otherCopy[id] || otherCopy.normal)[0]
   const detail = id === 'fall' ? current[3] : (otherCopy[id] || otherCopy.normal)[1]
-  const stateLabel = running ? 'Em andamento' : paused ? 'Pausado' : snapshot.status === 'concluido' ? 'Concluído' : 'Pronto para começar'
+  const stateLabel = running ? 'Em andamento' : canResume ? 'Pausado' : paused && hasRun ? 'Pronto para reiniciar' : snapshot.status === 'concluido' ? 'Concluído' : 'Pronto para começar'
   return <div className="page-content live-page" ref={root}>
     <header className="live-heading"><div><span className="eyebrow">EXPERIÊNCIA RESIDENCIAL</span><h2>O cuidado acontece aqui.</h2><p>Acompanhe como a casa percebe e responde a situações incomuns.</p></div><div className="live-heading-actions"><CustomSelect label="Cenário" value={selected} options={scenarios.map(([value, label]) => ({ value, label }))} onChange={choose} disabled={busy} /><button type="button" className="button secondary" onClick={() => document.fullscreenElement ? document.exitFullscreen() : root.current?.requestFullscreen()}><Maximize2 size={15} /> Tela cheia</button></div></header>
     <section className="live-experience">
@@ -185,6 +182,6 @@ export default function LiveSimulator({ simulation, perform, history }) {
         {id === 'fall' ? <><div className="live-protocol"><h4>Protocolo de resposta</h4><ol>{fallPhases.slice(1).map(([at, label], index) => { const state = index + 1 < safePhase ? 'done' : index + 1 === safePhase ? 'current' : 'pending'; return <li key={label} className={state}><span className="live-step-icon">{state === 'done' ? '✓' : index + 1}</span><span>{protocolLabels[index]}</span><time>{clock(at)}</time></li> })}</ol><small>{snapshot.last_alert_status === 'reconhecido' ? 'Ocorrência reconhecida. ' : ''}Solicitação e chegada do socorro são fictícias.</small></div><details className="live-telemetry"><summary><span>Atividade registrada</span><small>eventos por dia</small></summary><div className="live-chart-body"><div className="live-chart-inner"><ActivityChart rows={history?.activity_by_day || []} compact /><small>Histórico persistido no período selecionado.</small></div></div></details></> : <ScenarioTelemetry id={id} snapshot={snapshot} inactivityEvent={inactivityEvent} routineEvent={routineEvent} connectionEvent={connectionEvent} latestTemperature={latestTemperature} latestHumidity={latestHumidity} readings={readings} />}
       </aside>
     </section>
-    <section className="live-player" aria-label="Controles da demonstração"><div className="live-timeline" aria-label="Etapas do cenário">{(id === 'fall' ? fallPhases : [[0, 'Início'], [duration, 'Conclusão']]).map(([at, label], index) => <div key={label} className={elapsed >= at && (id !== 'fall' || index <= safePhase) ? 'done' : ''}><i /><span>{label}</span></div>)}</div><div className="live-controls"><button type="button" className="button primary" disabled={busy} onClick={play}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pausar' : paused && hasRun ? 'Continuar' : 'Iniciar'}</button><button type="button" className="live-control" disabled={busy || !hasRun || snapshot.status === 'concluido'} onClick={() => action(() => api.post('/simulation/next'), null)}><SkipForward size={16} /> Próxima etapa</button><button type="button" className="live-control" disabled={busy} onClick={() => action(startScenario, 'Cenário reiniciado.', selected)}><RotateCcw size={15} /> Reiniciar</button><button type="button" className="live-control" disabled={busy || !hasRun} onClick={() => action(() => api.post('/simulation/speed', { speed: snapshot.speed === 1 ? 2 : snapshot.speed === 2 ? 0.5 : 1 }), null)} aria-label="Alterar velocidade">{snapshot.speed || 1}×</button><span className="live-clock">{clock(elapsed)} / {clock(duration)}</span></div><div className="live-progress"><i style={{ width: `${Math.min(100, elapsed / duration * 100)}%` }} /></div></section>
+    <section className="live-player" aria-label="Controles da demonstração"><div className="live-timeline" aria-label="Etapas do cenário">{(id === 'fall' ? fallPhases : [[0, 'Início'], [duration, 'Conclusão']]).map(([at, label], index) => <div key={label} className={elapsed >= at && (id !== 'fall' || index <= safePhase) ? 'done' : ''}><i /><span>{label}</span></div>)}</div><div className="live-controls"><button type="button" className="button primary" disabled={busy} onClick={play}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pausar' : canResume ? 'Continuar' : hasRun ? 'Reiniciar cenário' : 'Iniciar'}</button><button type="button" className="live-control" disabled={busy || !canAdvance} onClick={() => action(() => api.post('/simulation/next'), null)}><SkipForward size={16} /> Próxima etapa</button><button type="button" className="live-control" disabled={busy} onClick={() => action(startScenario, 'Cenário reiniciado.', selected)}><RotateCcw size={15} /> Reiniciar</button><button type="button" className="live-control" disabled={busy || !hasRun || snapshot.status === 'concluido'} onClick={() => action(() => api.post('/simulation/speed', { speed: snapshot.speed === 1 ? 2 : snapshot.speed === 2 ? 0.5 : 1 }), null)} aria-label="Alterar velocidade">{snapshot.speed || 1}×</button><span className="live-clock">{clock(elapsed)} / {clock(duration)}</span></div><div className="live-progress"><i style={{ width: `${Math.min(100, elapsed / duration * 100)}%` }} /></div></section>
   </div>
 }

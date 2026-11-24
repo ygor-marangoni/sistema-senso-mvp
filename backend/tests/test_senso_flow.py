@@ -209,6 +209,22 @@ def test_disabled_demo_account_cannot_authenticate(client, database, monkeypatch
     assert response.json()["detail"] == "E-mail ou senha incorretos."
 
 
+def test_demo_shortcut_is_limited_to_local_environment(client, database, monkeypatch):
+    from app.main import settings as api_settings
+
+    seed_account(database)
+    monkeypatch.setattr(api_settings, "app_env", "development")
+    monkeypatch.setattr(api_settings, "demo_login_enabled", True)
+    response = client.post("/auth/demo")
+    assert response.status_code == 200
+    assert response.json()["is_demo"] is True
+    assert client.get("/auth/session").json()["user"]["is_demo"] is True
+
+    monkeypatch.setattr(api_settings, "app_env", "production")
+    monkeypatch.setattr(api_settings, "cors_origins", "https://app.example.com")
+    assert client.post("/auth/demo", headers={"Origin": "https://app.example.com"}).status_code == 404
+
+
 def test_disabling_demo_invalidates_existing_sessions_and_reserves_email(client, database, monkeypatch):
     from app.main import settings as api_settings
 

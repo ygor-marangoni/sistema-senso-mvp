@@ -3,6 +3,7 @@ import { api } from '../api/client'
 export const authService = {
   session: () => api.get('/auth/session'),
   login: (data) => api.post('/auth/login', data),
+  demo: () => api.post('/auth/demo'),
   register: (data) => api.post('/auth/register', data),
   updateProfile: (data) => api.patch('/auth/profile', data),
   logout: () => api.post('/auth/logout'),

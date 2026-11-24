@@ -263,7 +263,7 @@ def _set_session(response: Response, user: User) -> None:
 
 
 def _user_data(user: User) -> dict:
-    return {"id": user.id, "name": user.name, "email": user.email, "phone": user.phone, "cpf": user.cpf}
+    return {"id": user.id, "name": user.name, "email": user.email, "phone": user.phone, "cpf": user.cpf, "is_demo": user.email == "demo@senso.local"}
 
 
 def _residence(db: Session, user: User) -> Residence:
@@ -473,6 +473,17 @@ def login(data: LoginIn, response: Response, db: Db):
     user = db.scalar(select(User).where(User.email == email))
     if not user or not password_hash.verify(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="E-mail ou senha incorretos.")
+    _set_session(response, user)
+    return _user_data(user)
+
+
+@app.post("/auth/demo", include_in_schema=False)
+def demo_login(response: Response, db: Db):
+    if settings.app_env.lower() not in {"development", "local", "test"} or not settings.demo_login_enabled:
+        raise HTTPException(status_code=404, detail="Demonstração indisponível.")
+    user = db.scalar(select(User).where(User.email == "demo@senso.local"))
+    if not user:
+        raise HTTPException(status_code=404, detail="Demonstração indisponível.")
     _set_session(response, user)
     return _user_data(user)
 
