@@ -1,40 +1,40 @@
 # Sistema Senso
 
-**Tecnologia presente quando realmente importa.** O Sistema Senso Ã© um MVP acadÃªmico de monitoramento residencial inteligente para apoiar a autonomia de pessoas idosas e dar contexto a familiares e cuidadores.
+**Tecnologia presente quando realmente importa.** O Sistema Senso é um MVP acadêmico de monitoramento residencial inteligente para apoiar a autonomia de pessoas idosas e dar contexto a familiares e cuidadores.
 
-O sistema combina sinais residenciais simulados, regras determinÃ­sticas, histÃ³rico e alertas. NÃ£o usa cÃ¢meras, microfones ou dispositivos fÃ­sicos, nÃ£o faz diagnÃ³stico e nÃ£o se conecta a serviÃ§os de emergÃªncia.
+O sistema combina sinais residenciais simulados, regras determinísticas, histórico e alertas. Não usa câmeras, microfones ou dispositivos físicos, não faz diagnóstico e não se conecta a serviços de emergência.
 
 ## O que funciona
 
-- Conta demonstrativa e cadastro simplificado, com sessÃ£o HttpOnly e senha protegida por Argon2.
-- Painel com estado do monitoramento calculado no backend, Ãºltima atividade, temperatura, umidade, conectividade e alertas ativos.
+- Conta demonstrativa e cadastro simplificado, com sessão HttpOnly e senha protegida por Argon2.
+- Painel com estado do monitoramento calculado no backend, última atividade, temperatura, umidade, conectividade e alertas ativos.
 - Planta baixa interativa com cinco ambientes e dispositivos virtuais associados.
-- HistÃ³rico filtrÃ¡vel por perÃ­odo, ambiente e tipo de evento, com grÃ¡ficos Chart.js alimentados por registros persistidos.
-- Central de alertas com classificaÃ§Ã£o, reconhecimento, resoluÃ§Ã£o e histÃ³rico preservado.
-- PÃ¡gina de dispositivos, configuraÃ§Ãµes de residÃªncia e limites demonstrativos, contatos editÃ¡veis.
-- Agenda com horÃ¡rios de medicamentos, confirmaÃ§Ã£o de doses e compromissos de saÃºde, como consultas e exames.
-- Simulador de seis cenÃ¡rios, com progressÃ£o controlada pelo backend e restauraÃ§Ã£o/reinicializaÃ§Ã£o da conta demonstrativa.
-- Dados iniciais fictÃ­cios para 31 dias, gerados de forma determinÃ­stica.
+- Histórico filtrável por período, ambiente e tipo de evento, com gráficos Chart.js alimentados por registros persistidos.
+- Central de alertas com classificação, reconhecimento, resolução e histórico preservado.
+- Página de dispositivos, configurações de residência e limites demonstrativos, contatos editáveis.
+- Agenda com horários de medicamentos, confirmação de doses e compromissos de saúde, como consultas e exames.
+- Simulador de seis cenários, com progressão controlada pelo backend e restauração/reinicialização da conta demonstrativa.
+- Dados iniciais fictícios para 31 dias, gerados de forma determinística.
 
 ## Arquitetura
 
 - **Front-end:** React 19, Vite 7, JavaScript, CSS puro, Fustat local, Axios, Lucide React e Chart.js.
 - **API:** Python 3.12, FastAPI, Pydantic, SQLAlchemy 2, Psycopg 3, JWT em cookie e Argon2.
-- **Banco:** PostgreSQL independente, nome `senso`; migraÃ§Ãµes Alembic prÃ³prias, sem tabelas do domÃ­nio anterior.
-- **SimulaÃ§Ã£o:** worker Ãºnico no backend. A geraÃ§Ã£o de eventos, a anÃ¡lise das regras e a gravaÃ§Ã£o no banco nÃ£o dependem de quantos componentes consultam a API.
+- **Banco:** PostgreSQL independente, nome `senso`; migrações Alembic próprias, sem tabelas do domínio anterior.
+- **Simulação:** worker único no backend. A geração de eventos, a análise das regras e a gravação no banco não dependem de quantos componentes consultam a API.
 
 ### Estrutura
 
 ```text
 backend/app/models.py              modelos relacionais do Senso
-backend/app/main.py                API, autenticaÃ§Ã£o e worker da simulaÃ§Ã£o
-backend/app/services/analysis.py   regras contextuais e deduplicaÃ§Ã£o
-backend/app/services/simulation.py cenÃ¡rios progressivos
-backend/app/services/demo.py       histÃ³rico sintÃ©tico reproduzÃ­vel
-backend/migrations/                migraÃ§Ãµes prÃ³prias do Senso
-backend/scripts/load_demo.py       criaÃ§Ã£o da conta demonstrativa
-frontend/src/App.jsx               autenticaÃ§Ã£o, navegaÃ§Ã£o e atualizaÃ§Ã£o
-frontend/src/components/           planta, grÃ¡ficos e mÃ³dulos da aplicaÃ§Ã£o
+backend/app/main.py                API, autenticação e worker da simulação
+backend/app/services/analysis.py   regras contextuais e deduplicação
+backend/app/services/simulation.py cenários progressivos
+backend/app/services/demo.py       histórico sintético reproduzível
+backend/migrations/                migrações próprias do Senso
+backend/scripts/load_demo.py       criação da conta demonstrativa
+frontend/src/App.jsx               autenticação, navegação e atualização
+frontend/src/components/           planta, gráficos e módulos da aplicação
 frontend/src/styles.css            linguagem visual e responsividade
 ```
 
@@ -42,22 +42,22 @@ frontend/src/styles.css            linguagem visual e responsividade
 
 - Windows 10/11, PowerShell e Python 3.12.
 - Node.js 20 ou superior e npm.
-- PostgreSQL local instalado e em execuÃ§Ã£o. NÃ£o Ã© necessÃ¡rio Docker.
+- PostgreSQL local instalado e em execução. Não é necessário Docker.
 
-Portas padrÃ£o: Vite `5174`, API `8001` e PostgreSQL `5432`.
+Portas padrão: Vite `5174`, API `8001` e PostgreSQL `5432`.
 
 ## Preparar o PostgreSQL
 
-Crie um usuÃ¡rio sem privilÃ©gios administrativos e um banco dedicado. A senha `senso_dev` mostrada abaixo Ã© somente para desenvolvimento local; em produÃ§Ã£o, use uma senha exclusiva e aleatÃ³ria. No pgAdmin, abra o Query Tool conectado ao banco `postgres` e execute:
+Crie um usuário sem privilégios administrativos e um banco dedicado. A senha `senso_dev` mostrada abaixo é somente para desenvolvimento local; em produção, use uma senha exclusiva e aleatória. No pgAdmin, abra o Query Tool conectado ao banco `postgres` e execute:
 
 ```sql
 CREATE ROLE senso WITH LOGIN PASSWORD 'senso_dev';
 CREATE DATABASE senso OWNER senso;
 ```
 
-Se o papel `senso` jÃ¡ existir, atualize sua senha com `ALTER ROLE senso WITH LOGIN PASSWORD 'senso_dev';`. Se o banco `senso` jÃ¡ existir, confira seu proprietÃ¡rio antes de prosseguir. **NÃ£o use os bancos `triton` ou `triton_demo`.**
+Se o papel `senso` já existir, atualize sua senha com `ALTER ROLE senso WITH LOGIN PASSWORD 'senso_dev';`. Se o banco `senso` já existir, confira seu proprietário antes de prosseguir. **Não use os bancos `triton` ou `triton_demo`.**
 
-Copie `backend/.env.example` para `backend/.env` e ajuste `DATABASE_URL` para a senha escolhida. Substitua tambÃ©m `SECRET_KEY` por um valor aleatÃ³rio com pelo menos 32 caracteres. A API aceita somente PostgreSQL no banco independente `senso`; SQLite Ã© permitido apenas nos testes isolados. Essa proteÃ§Ã£o tambÃ©m vale para Alembic.
+Copie `backend/.env.example` para `backend/.env` e ajuste `DATABASE_URL` para a senha escolhida. Substitua também `SECRET_KEY` por um valor aleatório com pelo menos 32 caracteres. A API aceita somente PostgreSQL no banco independente `senso`; SQLite é permitido apenas nos testes isolados. Essa proteção também vale para Alembic.
 
 ## Instalar e iniciar
 
@@ -76,13 +76,13 @@ python scripts/load_demo.py
 uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-Na conta demonstrativa, o carregamento inclui duas programaÃ§Ãµes fictÃ­cias (manhÃ£ e noite) e uma consulta de exemplo. SÃ£o exemplos visuais, nÃ£o orientaÃ§Ãµes de uso de medicamentos ou compromissos reais.
+Na conta demonstrativa, o carregamento inclui duas programações fictícias (manhã e noite) e uma consulta de exemplo. São exemplos visuais, não orientações de uso de medicamentos ou compromissos reais.
 
-A documentaÃ§Ã£o interativa fica em `http://127.0.0.1:8001/docs`; a checagem de serviÃ§o estÃ¡ em `/health`.
+A documentação interativa fica em `http://127.0.0.1:8001/docs`; a checagem de serviço está em `/health`.
 
-Para atualizar uma instalaÃ§Ã£o existente, confirme que `DATABASE_URL` aponta para o banco independente `senso`, execute `alembic upgrade head` na pasta `backend` e reinicie a API. A migraÃ§Ã£o `0003_medications` cria as tabelas de programaÃ§Ã£o e confirmaÃ§Ã£o de medicamentos; `0004_user_contact` adiciona telefone e CPF opcionais ao perfil do responsÃ¡vel; `0005_resident_birth_date` adiciona a data de nascimento opcional; `0006_appointments` cria a agenda de consultas e exames. As idades antigas sÃ£o preservadas sem criar datas de nascimento estimadas.
+Para atualizar uma instalação existente, confirme que `DATABASE_URL` aponta para o banco independente `senso`, execute `alembic upgrade head` na pasta `backend` e reinicie a API. A migração `0003_medications` cria as tabelas de programação e confirmação de medicamentos; `0004_user_contact` adiciona telefone e CPF opcionais ao perfil do responsável; `0005_resident_birth_date` adiciona a data de nascimento opcional; `0006_appointments` cria a agenda de consultas e exames. As idades antigas são preservadas sem criar datas de nascimento estimadas.
 
-A agenda permite cadastrar um horÃ¡rio por medicamento, escolher dias da semana, definir inÃ­cio e fim e registrar a confirmaÃ§Ã£o pelo responsÃ¡vel. TambÃ©m permite registrar consultas, retornos e exames com data, hora, profissional e local. Para mais de um horÃ¡rio no dia, cadastre um item para cada horÃ¡rio. A confirmaÃ§Ã£o Ã© informada pelo usuÃ¡rio e nÃ£o comprova a ingestÃ£o. Lembretes internos aparecem perto do horÃ¡rio enquanto o Senso estÃ¡ aberto; nÃ£o sÃ£o enviados por SMS, e-mail ou com o navegador fechado. Os horÃ¡rios sÃ£o interpretados no horÃ¡rio de BrasÃ­lia. Se a API da conta demonstrativa ainda nÃ£o tiver as rotas da agenda, novos itens ficam apenas no armazenamento local do navegador atÃ© a migraÃ§Ã£o ser aplicada e a API reiniciada.
+A agenda permite cadastrar um horário por medicamento, escolher dias da semana, definir início e fim e registrar a confirmação pelo responsável. Também permite registrar consultas, retornos e exames com data, hora, profissional e local. Para mais de um horário no dia, cadastre um item para cada horário. A confirmação é informada pelo usuário e não comprova a ingestão. Lembretes internos aparecem perto do horário enquanto o Senso está aberto; não são enviados por SMS, e-mail ou com o navegador fechado. Os horários são interpretados no horário de Brasília. Se a API da conta demonstrativa ainda não tiver as rotas da agenda, novos itens ficam apenas no armazenamento local do navegador até a migração ser aplicada e a API reiniciada.
 
 ### 2. Front-end
 
@@ -94,50 +94,49 @@ npm ci
 npm run dev
 ```
 
-Abra `http://localhost:5174`. Se necessÃ¡rio, copie `frontend/.env.example` para `frontend/.env` e ajuste `VITE_API_URL`.
+Abra `http://localhost:5174`. Se necessário, copie `frontend/.env.example` para `frontend/.env` e ajuste `VITE_API_URL`.
 
 ### Conta demonstrativa local
 
-No desenvolvimento, a tela de entrada tem um botÃ£o para acessar os dados fictÃ­cios. O botÃ£o e o preenchimento de credenciais aparecem somente no Vite em modo de desenvolvimento. Em ambientes compartilhados, configure `DEMO_LOGIN_ENABLED=false`; a API recusa o login e a reinicializaÃ§Ã£o da conta demonstrativa. NÃ£o publique as credenciais locais.
+No desenvolvimento, a tela de entrada tem um botão para acessar os dados fictícios. O botão e o preenchimento de credenciais aparecem somente no Vite em modo de desenvolvimento. Em ambientes compartilhados, configure `DEMO_LOGIN_ENABLED=false`; a API recusa o login e a reinicialização da conta demonstrativa. Não publique as credenciais locais.
 
-## Demonstrar os cenÃ¡rios
+## Demonstrar os cenários
 
-Abra **Modo demonstraÃ§Ã£o** no menu. Execute **PossÃ­vel queda** para acompanhar, em aproximadamente 34 segundos:
+Abra **Modo demonstração** no menu. Execute **Possível queda** para acompanhar, em aproximadamente 34 segundos:
 
 1. Movimento habitual.
-2. Movimento brusco isolado, sem conclusÃ£o automÃ¡tica.
+2. Movimento brusco isolado, sem conclusão automática.
 3. Inatividade posterior interpretada em contexto.
-4. Alerta crÃ­tico enviado ao painel.
-5. Reconhecimento e resoluÃ§Ã£o manual na central de alertas.
+4. Alerta crítico enviado ao painel.
+5. Reconhecimento e resolução manual na central de alertas.
 
-TambÃ©m estÃ£o disponÃ­veis rotina normal, inatividade prolongada, alteraÃ§Ã£o ambiental, desconexÃ£o/retorno de dispositivo e alteraÃ§Ã£o de rotina. **Restaurar condiÃ§Ãµes** recupera conectividade e parÃ¢metros ambientais, mantendo os registros no histÃ³rico. **Limpar demonstraÃ§Ã£o** restaura 31 dias da conta demonstrativa e preserva conta, residÃªncia e preferÃªncias.
+Também estão disponíveis rotina normal, inatividade prolongada, alteração ambiental, desconexão/retorno de dispositivo e alteração de rotina. **Restaurar condições** recupera conectividade e parâmetros ambientais, mantendo os registros no histórico. **Limpar demonstração** restaura 31 dias da conta demonstrativa e preserva conta, residência e preferências.
 
 ## Testes
 
-Na pasta `frontend`, execute `npm test` e `npm run build`. Na pasta `backend`, execute `pytest`. Os testes de API usam SQLite temporÃ¡rio; eles nÃ£o substituem uma validaÃ§Ã£o operacional no PostgreSQL `senso`.
+Na pasta `frontend`, execute `npm test` e `npm run build`. Na pasta `backend`, execute `pytest`. Os testes de API usam SQLite temporário; eles não substituem uma validação operacional no PostgreSQL `senso`.
 
-## Dados, privacidade e limitaÃ§Ãµes
+## Dados, privacidade e limitações
 
-- Todos os moradores, contatos, leituras e ocorrÃªncias fornecidos sÃ£o fictÃ­cios.
-- Regras, janelas temporais e limites ambientais sÃ£o parÃ¢metros acadÃªmicos de simulaÃ§Ã£o, nÃ£o critÃ©rios clÃ­nicos.
-- PresenÃ§a Ã© inferida por eventos residenciais. AusÃªncia de movimento nÃ£o equivale a ausÃªncia de presenÃ§a.
-- Uma falha de sensor reduz a cobertura; nÃ£o Ã© interpretada como falta de movimento.
-- O MVP nÃ£o implementa hardware, captura real de sinais Wiâ€‘Fi, aplicativos mÃ³veis, convites, SMS, WhatsApp, e-mail ou serviÃ§o de emergÃªncia.
-- A telemetria e as notificaÃ§Ãµes sÃ£o locais Ã  aplicaÃ§Ã£o e nÃ£o sÃ£o enviadas a contatos.
+- Todos os moradores, contatos, leituras e ocorrências fornecidos são fictícios.
+- Regras, janelas temporais e limites ambientais são parâmetros acadêmicos de simulação, não critérios clínicos.
+- Presença é inferida por eventos residenciais. Ausência de movimento não equivale a ausência de presença.
+- Uma falha de sensor reduz a cobertura; não é interpretada como falta de movimento.
+- O MVP não implementa hardware, captura real de sinais Wi‑Fi, aplicativos móveis, convites, SMS, WhatsApp, e-mail ou serviço de emergência.
+- A telemetria e as notificações são locais à aplicação e não são enviadas a contatos.
 
-## Reaproveitamento e limpeza da cÃ³pia
+## Reaproveitamento e limpeza da cópia
 
-Foram mantidos a estrutura React/Vite e FastAPI, a famÃ­lia Fustat, padrÃµes de sessÃ£o, autenticaÃ§Ã£o com Argon2, Axios, navegaÃ§Ã£o lateral, responsividade e padrÃµes de carregamento/feedback da base local. O domÃ­nio hÃ­drico, integraÃ§Ãµes, mapas rurais, uploads de imagens e suas dependÃªncias, testes, migraÃ§Ãµes, assets e documentaÃ§Ã£o foram removidos desta cÃ³pia. A aplicaÃ§Ã£o nÃ£o estÃ¡ vinculada a um remoto Git.
+Foram mantidos a estrutura React/Vite e FastAPI, a família Fustat, padrões de sessão, autenticação com Argon2, Axios, navegação lateral, responsividade e padrões de carregamento/feedback da base local. O domínio hídrico, integrações, mapas rurais, uploads de imagens e suas dependências, testes, migrações, assets e documentação foram removidos desta cópia. A aplicação não está vinculada a um remoto Git.
 
-## Modo demonstraÃ§Ã£o residencial
+## Modo demonstração residencial
 
-A pÃ¡gina **Modo demonstraÃ§Ã£o** incorpora a experiÃªncia de `senso-demo.html` Ã  aplicaÃ§Ã£o React. A maquete procedural, os quatro ambientes, Dona Helena, os dois profissionais, os sensores e as trajetÃ³rias foram movidos para `frontend/src/demo/sensoScene.js`. Three.js Ã© carregado como dependÃªncia do Vite. Se WebGL nÃ£o iniciar ou perder o contexto, `frontend/src/demo/sensoFallback.js` usa a rasterizaÃ§Ã£o Canvas da referÃªncia e identifica esse modo na tela.
+A página **Modo demonstração** incorpora a experiência de `senso-demo.html` à aplicação React. A maquete procedural, os quatro ambientes, Dona Helena, os dois profissionais, os sensores e as trajetórias foram movidos para `frontend/src/demo/sensoScene.js`. Three.js é carregado como dependência do Vite. Se WebGL não iniciar ou perder o contexto, `frontend/src/demo/sensoFallback.js` usa a rasterização Canvas da referência e identifica esse modo na tela.
 
-`frontend/src/components/LiveSimulator.jsx` mantÃ©m os controles, o contexto e o protocolo. O estado autoritativo vem de `/simulation/state`; o backend persiste o relÃ³gio lÃ³gico, velocidade, execuÃ§Ã£o e etapas em `simulation_runs`. O worker processa cada marco em ordem, grava leituras/eventos no banco existente e passa os eventos pelo motor de regras antes de criar alertas. A cena interpola somente atÃ© o tempo confirmado pela API. Os cenÃ¡rios disponÃ­veis sÃ£o rotina normal (`normal`, 22 s), inatividade (`idle`, 28 s), possÃ­vel queda (`fall`, 34 s), alteraÃ§Ã£o ambiental (`heat`, 28 s), dispositivo desconectado (`offline`, 26 s) e alteraÃ§Ã£o de rotina (`routine`, 26 s). A pausa, retomada, avanÃ§o e velocidade usam a mesma execuÃ§Ã£o persistida. Reiniciar um roteiro nÃ£o apaga histÃ³rico; limpeza demonstrativa Ã© uma aÃ§Ã£o separada.
+`frontend/src/components/LiveSimulator.jsx` mantém os controles, o contexto e o protocolo. O estado autoritativo vem de `/simulation/state`; o backend persiste o relógio lógico, velocidade, execução e etapas em `simulation_runs`. O worker processa cada marco em ordem, grava leituras/eventos no banco existente e passa os eventos pelo motor de regras antes de criar alertas. A cena interpola somente até o tempo confirmado pela API. Os cenários disponíveis são rotina normal (`normal`, 22 s), inatividade (`idle`, 28 s), possível queda (`fall`, 34 s), alteração ambiental (`heat`, 28 s), dispositivo desconectado (`offline`, 26 s) e alteração de rotina (`routine`, 26 s). A pausa, retomada, avanço e velocidade usam a mesma execução persistida. Reiniciar um roteiro não apaga histórico; limpeza demonstrativa é uma ação separada.
 
-No cenÃ¡rio de possÃ­vel queda, a API registra movimento brusco aos 7 s e aplica a regra contextual aos 11 s, desde que os sinais prÃ©vios estejam persistidos e o sensor esteja online. A interface apresenta os marcos de anÃ¡lise, alerta e roteiro fictÃ­cio de socorro aos tempos da referÃªncia, com chegada aos 21 s e inÃ­cio do acompanhamento aos 30 s. SolicitaÃ§Ã£o, deslocamento e chegada sÃ£o eventos narrativos simulados, sem contato externo ou confirmaÃ§Ã£o de emergÃªncia real. O alerta de possÃ­vel queda permanece aberto atÃ© verificaÃ§Ã£o explÃ­cita.
+No cenário de possível queda, a API registra movimento brusco aos 7 s e aplica a regra contextual aos 11 s, desde que os sinais prévios estejam persistidos e o sensor esteja online. A interface apresenta os marcos de análise, alerta e roteiro fictício de socorro aos tempos da referência, com chegada aos 21 s e início do acompanhamento aos 30 s. Solicitação, deslocamento e chegada são eventos narrativos simulados, sem contato externo ou confirmação de emergência real. O alerta de possível queda permanece aberto até verificação explícita.
 
-Os grÃ¡ficos reutilizam os componentes Chart.js e dados jÃ¡ persistidos no histÃ³rico. A sÃ©rie disponÃ­vel atualmente Ã© agregada por dia para atividade e contÃ©m leituras ambientais registradas; ela nÃ£o representa uma sÃ©rie granular por segundo da execuÃ§Ã£o. A telemetria fica recolhida no protocolo para manter a residÃªncia como foco. A visualizaÃ§Ã£o alternativa Canvas preserva a cena em ambientes sem WebGL, mas nÃ£o tem as mesmas capacidades de aceleraÃ§Ã£o da renderizaÃ§Ã£o Three.js.
+Os gráficos reutilizam os componentes Chart.js e dados já persistidos no histórico. A série disponível atualmente é agregada por dia para atividade e contém leituras ambientais registradas; ela não representa uma série granular por segundo da execução. A telemetria fica recolhida no protocolo para manter a residência como foco. A visualização alternativa Canvas preserva a cena em ambientes sem WebGL, mas não tem as mesmas capacidades de aceleração da renderização Three.js.
 
-O botÃ£o de apresentaÃ§Ã£o usa tela cheia sobre a mesma pÃ¡gina e mantÃ©m a execuÃ§Ã£o atual. Os controles da maquete permitem vista superior e restauraÃ§Ã£o da cÃ¢mera; arraste e zoom operam diretamente no canvas. Para ambientes com banco jÃ¡ migrado atÃ© `0006_appointments`, aplique `alembic upgrade head` antes de iniciar a API para adicionar os campos da migraÃ§Ã£o `0007_simulation_clock`. A execuÃ§Ã£o local segue as instruÃ§Ãµes acima; os testes de fluxo do backend cobrem a pausa, velocidade, avanÃ§o, deduplicaÃ§Ã£o e os seis roteiros.
-
+O botão de apresentação usa tela cheia sobre a mesma página e mantém a execução atual. Os controles da maquete permitem vista superior e restauração da câmera; arraste e zoom operam diretamente no canvas. Para ambientes com banco já migrado até `0006_appointments`, aplique `alembic upgrade head` antes de iniciar a API para adicionar os campos da migração `0007_simulation_clock`. A execução local segue as instruções acima; os testes de fluxo do backend cobrem a pausa, velocidade, avanço, deduplicação e os seis roteiros.
