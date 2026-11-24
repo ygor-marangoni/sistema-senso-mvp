@@ -1,0 +1,6 @@
+Migrations for the independent Sistema Senso database `senso`.
+
+Configuration rejects PostgreSQL URLs whose database name is not `senso`.
+Apply changes from the backend directory with `alembic upgrade head` after
+confirming the database and role. The initial revision creates only Senso's
+tables; do not downgrade data that should be retained.
