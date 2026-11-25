@@ -23,7 +23,7 @@ from app.models import Alert, Appointment, Contact, Device, Event, Medication, M
 from app.services.analysis import record_event
 from app.services.demo import ensure_demo_appointments, ensure_demo_medications, populate_demo_history
 from app.services.residence import create_residence
-from app.services.simulation import SCENARIOS, SCENARIO_IDS, MARKERS, _steps, advance_simulation, logical_elapsed, schedule_next, simulation_snapshot
+from app.services.simulation import SCENARIOS, SCENARIO_IDS, MARKERS, _steps, advance_simulation, logical_elapsed, schedule_next, simulation_snapshot, validate_scenario_devices
 
 settings = get_settings()
 password_hash = PasswordHash.recommended()
@@ -880,6 +880,7 @@ def simulation_run(data: ScenarioIn, db: Db, user: AuthenticatedUser):
     if scenario not in SCENARIOS:
         raise HTTPException(status_code=422, detail="Cenário de simulação desconhecido.")
     residence = _residence(db, user)
+    validate_scenario_devices(db, residence.id, scenario)
     run = db.scalar(select(Simulation).where(Simulation.residence_id == residence.id).with_for_update())
     if not run:
         run = Simulation(residence_id=residence.id)

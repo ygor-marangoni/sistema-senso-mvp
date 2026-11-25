@@ -226,7 +226,7 @@ function App() {
       const params = { days: page === 'overview' ? 7 : historyFilters.days }
       if (page === 'routine' && historyFilters.room_id) params.room_id = Number(historyFilters.room_id)
       if (page === 'routine' && historyFilters.event_type) params.event_type = historyFilters.event_type
-      const wantsHistory = page === 'overview' || page === 'routine'
+      const wantsHistory = page === 'overview' || page === 'routine' || page === 'demo'
       const wantsAlerts = page === 'alerts'
       const wantsSettings = page === 'settings'
       const [dashboardResult, historyResult, alertResult, settingsResult, contactResult] = await Promise.all([

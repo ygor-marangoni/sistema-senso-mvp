@@ -9,7 +9,9 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("residences", sa.Column("resident_birth_date", sa.Date(), nullable=True))
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("residences")}
+    if "resident_birth_date" not in columns:
+        op.add_column("residences", sa.Column("resident_birth_date", sa.Date(), nullable=True))
 
 
 def downgrade():

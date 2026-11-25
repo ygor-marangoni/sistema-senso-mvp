@@ -14,6 +14,8 @@ Cloudflare documenta suporte a FastAPI em Python Workers, mas o exemplo atual re
 
 ## Estado da publicação
 
+Antes de expor o backend à internet, atualize e valide as dependências Python em uma instalação limpa. As versões atuais incluem Starlette afetado por [GHSA-86qp-5c8j-p5mr](https://github.com/advisories/GHSA-86qp-5c8j-p5mr) e PyJWT afetado por [GHSA-jq35-7prp-9v3f](https://github.com/advisories/GHSA-jq35-7prp-9v3f). Os padrões de exploração descritos não foram identificados na implementação atual, mas isso não substitui a atualização e os testes. O build Vite e a auditoria em navegador também precisam ser executados antes do deploy.
+
 - O repositório privado `ygor-marangoni/sistema-senso-mvp` é a origem da publicação.
 - O diretório `backend` contém um Dockerfile para o serviço FastAPI no Northflank.
 - O projeto Pages `sistema-senso-mvp` foi criado por upload direto; a API e o PostgreSQL Northflank ainda precisam ser criados no painel autenticado.
@@ -66,7 +68,7 @@ O orçamento de até US$ 20/mês é uma cota de uso, não garantia de que qualqu
 
 O serviço Northflank usa o Dockerfile em `backend/Dockerfile`, com contexto `backend`. O container instala `requirements.txt`, aplica migrações Alembic e inicia Uvicorn na porta `PORT` (8001 por padrão).
 
-Confirme no painel que o recurso é novo, privado, na região gratuita e que `DATABASE_URL` referencia o banco Northflank recém-criado `senso` antes de deixar o primeiro deploy aplicar migrações. Não use o banco Triton nem o PostgreSQL local como banco de produção.
+Confirme no painel que o recurso é novo, privado, na região gratuita e que `DATABASE_URL` referencia o banco Northflank recém-criado `senso` antes de deixar o primeiro deploy aplicar migrações. Não use bancos de outros projetos nem o PostgreSQL local como banco de produção.
 
 Configure as variáveis no serviço de API:
 
