@@ -8,9 +8,13 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column("simulation_runs", sa.Column("elapsed_base", sa.Float(), nullable=False, server_default="0"))
-    op.add_column("simulation_runs", sa.Column("speed", sa.Float(), nullable=False, server_default="1"))
-    op.add_column("simulation_runs", sa.Column("run_token", sa.String(36), nullable=True))
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("simulation_runs")}
+    if "elapsed_base" not in columns:
+        op.add_column("simulation_runs", sa.Column("elapsed_base", sa.Float(), nullable=False, server_default="0"))
+    if "speed" not in columns:
+        op.add_column("simulation_runs", sa.Column("speed", sa.Float(), nullable=False, server_default="1"))
+    if "run_token" not in columns:
+        op.add_column("simulation_runs", sa.Column("run_token", sa.String(36), nullable=True))
 
 def downgrade():
     op.drop_column("simulation_runs", "run_token")

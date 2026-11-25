@@ -7,7 +7,7 @@ from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://senso:senso_dev@localhost:5432/senso"
+    database_url: str = "postgresql+psycopg://senso@localhost:5432/senso"
     secret_key: str = "senso-local-development-secret-change-before-sharing"
     cors_origins: str = "http://localhost:5174,http://127.0.0.1:5174,http://localhost:4173,http://127.0.0.1:4173"
     cookie_secure: bool = False

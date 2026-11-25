@@ -1,5 +1,6 @@
 """Create the fictional Senso demo account and a reproducible 30-day history."""
 import argparse
+import secrets
 
 from pwdlib import PasswordHash
 from sqlalchemy import func, select
@@ -11,7 +12,6 @@ from app.services.demo import ensure_demo_appointments, ensure_demo_medications,
 from app.services.residence import create_residence
 
 DEMO_EMAIL = "demo@senso.local"
-DEMO_PASSWORD = "Senso-Demo-2026!"
 password_hash = PasswordHash.recommended()
 
 
@@ -26,7 +26,9 @@ def load_demo(reset: bool = False) -> None:
             db.commit()
             user = None
         if not user:
-            user = User(name="Mariana Duarte", email=DEMO_EMAIL, password_hash=password_hash.hash(DEMO_PASSWORD))
+            # The local demo button authenticates via /auth/demo. Assign an
+            # unshared random password to satisfy the normal account model.
+            user = User(name="Mariana Duarte", email=DEMO_EMAIL, password_hash=password_hash.hash(secrets.token_urlsafe(32)))
             db.add(user)
             db.flush()
         residence = db.scalar(select(Residence).where(Residence.owner_id == user.id).order_by(Residence.id).limit(1))
@@ -39,7 +41,7 @@ def load_demo(reset: bool = False) -> None:
         if not event_count:
             populate_demo_history(db, residence, days=31)
             db.commit()
-            print(f"Dados demonstrativos prontos. Acesso: {DEMO_EMAIL} / {DEMO_PASSWORD}")
+            print("Dados demonstrativos prontos. Use o botão de demonstração no ambiente local.")
         else:
             db.commit()
             print(f"Conta demonstrativa já configurada ({event_count} eventos existentes).")

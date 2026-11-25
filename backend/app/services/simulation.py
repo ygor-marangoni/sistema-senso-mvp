@@ -34,10 +34,25 @@ def _device(db: Session, residence_id: int, device_type: str, room_id: int | Non
         query = query.where(Device.room_id == room_id)
     device = db.scalar(query.order_by(Device.id).limit(1))
     if not device:
-        device = db.scalar(select(Device).where(Device.residence_id == residence_id).order_by(Device.id).limit(1))
-    if not device:
-        raise HTTPException(status_code=409, detail="Configure dispositivos virtuais antes de iniciar a simulação.")
+        raise HTTPException(status_code=409, detail="Configure um dispositivo virtual compatível no ambiente antes de iniciar a simulação.")
     return device
+
+
+def validate_scenario_devices(db: Session, residence_id: int, scenario: str) -> None:
+    """Reject scenarios with missing sensors before starting the background worker."""
+    required_rooms = {
+        "normal": ("Sala de estar",),
+        "inatividade": ("Sala de estar", "Quarto"),
+        "possivel_queda": ("Sala de estar", "Cozinha"),
+        "ambiental": ("Sala de estar",),
+        "desconectado": ("Sala de estar", "Cozinha"),
+        "rotina": ("Sala de estar", "Cozinha"),
+    }
+    for name in required_rooms[scenario]:
+        room = _room(db, residence_id, name)
+        _device(db, residence_id, "presenca", room.id)
+    if scenario in {"normal", "ambiental"}:
+        _device(db, residence_id, "ambiental")
 
 
 def _write_environment(db: Session, residence_id: int, temperature: float, humidity: float) -> None:
@@ -101,7 +116,7 @@ def advance_simulation(db: Session, residence_id: int) -> dict:
 
     event_time, action = timeline[run.step]
     # The delays describe the gap after the previous step; the stored deadline is authoritative.
-    room = _room(db, residence_id, "Cozinha" if action in {"burst", "fall", "offline"} else "Sala de estar" if action in {"movement", "baseline", "routine_change"} else None)
+    room = _room(db, residence_id, "Cozinha" if action in {"burst", "fall", "offline", "inactivity_observed", "alert_available", "rescue_requested", "team_arrived", "care_started"} else "Sala de estar" if action in {"movement", "baseline", "routine_change"} else None)
     if action == "baseline":
         device = _device(db, residence_id, "presenca", room.id)
         device.last_seen_at = now

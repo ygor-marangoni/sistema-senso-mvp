@@ -10,6 +10,7 @@ node_modules/
 dist/
 
 backend/.tmp/
+backend/backups/
 backend/.codex-temp/
 backend/.run-tmp/
 backend/.deps/
@@ -31,5 +32,16 @@ test-results/
 
 *.py[cod]
 *.log
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.db-journal
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
 .DS_Store
 Thumbs.db

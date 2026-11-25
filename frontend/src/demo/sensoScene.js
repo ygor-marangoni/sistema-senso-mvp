@@ -57,11 +57,11 @@ function link(a,b,w,c){let A=world(...a),B=world(...b);out.push({kind:'link',x:(
 ell(0,.80,0,.46,.49,.28,shirt);ell(0,.57,0,.40,.25,.27,pants);ell(0,1.09,0,.15,.22,.15,skin);ell(0,1.29,.025,.30,.36,.29,skin);ell(0,1.39,-.035,.33,.23,.30,hair);ell(-.105,1.30,-.095,.13,.24,.17,hair);ell(.105,1.30,-.095,.13,.24,.17,hair);ell(0,1.41,-.11,.23,.18,.19,hair);ell(0,1.27,.178,.052,.057,.046,skin);for(let s of [-1,1]){ell(s*.151,1.27,.015,.05,.09,.07,skin);ell(s*.07,1.32,.156,.09,.06,.025,'#5b6d6a');ell(s*.07,1.32,.17,.062,.04,.013,'#c0d1c6');ell(s*.07,1.32,.180,.022,.023,.009,'#43514c');let swing=s*walk;link([s*.13,.54,0],[s*.14,.29,swing*.5],.15,pants);link([s*.14,.29,swing*.5],[s*.14,.085,swing],.12,pants);ell(s*.14,.06,swing+.045,.17,.10,.25,shoe);let armZ=-swing*.8;link([s*.24,.98,0],[s*.28,.77,armZ*.4],.13,shirt);link([s*.28,.77,armZ*.4],[s*.27,.58,armZ],.11,skin);ell(s*.27,.55,armZ,.115,.14,.12,skin)}return out}
 
 // Simulated human response. These figures are not readings of the resident.
-function responders(){
- if(scenario!=='fall'||elapsed<21)return [];
+function responders(time=elapsed, activeScenario=scenario){
+ if(activeScenario!=='fall'||time<21)return [];
  let out=[];
  for(let i=0;i<2;i++){
-  let t=elapsed-i*.85, route=i===0?[[21,.55,4.47],[23,.55,3.25],[25,.48,2.4],[27,-.25,1.55]]:[[21,.96,4.55],[23,.96,3.28],[25,1.12,2.48],[27,1.65,2.05]],p=pathAt(t,route),prev=pathAt(Math.max(21,t-.08),route),walking=t>21&&t<27, kneel=smooth((t-27)/2.1),yaw=walking?Math.atan2(p[0]-prev[0],p[1]-prev[1]):i===0?1.73:-2.15;
+  let t=time-i*.85, route=i===0?[[21,.55,4.47],[23,.55,3.25],[25,.48,2.4],[27,-.25,1.55]]:[[21,.96,4.55],[23,.96,3.28],[25,1.12,2.48],[27,1.65,2.05]],p=pathAt(t,route),prev=pathAt(Math.max(21,t-.08),route),walking=t>21&&t<27, kneel=smooth((t-27)/2.1),yaw=walking?Math.atan2(p[0]-prev[0],p[1]-prev[1]):i===0?1.73:-2.15;
   if(t<21)continue;
   let swing=walking?Math.sin(t*10)*.23:0,bob=walking?Math.abs(Math.sin(t*10))*.028:0,skin=i===0?'#bd987f':'#a77d61',uniform='#244b6b',vest='#dc8a37',pants='#263d4e';
   const W=(x,y,z)=>[p[0]+x*Math.cos(yaw)+z*Math.sin(yaw),.055+bob+y,p[1]-x*Math.sin(yaw)+z*Math.cos(yaw)];
@@ -128,7 +128,9 @@ function responders(){
     return item
   }
   shapes.forEach(shape => mesh(shape))
-  const person = character().map(shape => mesh(shape, true)), crew = []
+  const person = character().map(shape => mesh(shape, true))
+  // Allocate both responders before playback so their entrance doesn't create meshes mid-frame.
+  const crew = responders(22, 'fall').map(shape => { const item=mesh(shape,true); item.visible=false; return item })
   const dotGeometry = new THREE.SphereGeometry(.065,16,10), ringGeometry = new THREE.RingGeometry(.91,1,48)
   const rings = sensors.map(([x,z]) => {
     const group = new THREE.Group(); group.position.set(x,.38,z); scene.add(group)
@@ -156,7 +158,7 @@ function responders(){
     camera.position.set(Math.sin(angle)*18*Math.cos(elev),18*Math.sin(elev),Math.cos(angle)*18*Math.cos(elev)); camera.lookAt(0,.15,0)
     character().forEach((shape,i)=>place(person[i],shape))
     const figures=responders()
-    figures.forEach((shape,i)=>{ if (!crew[i]) crew[i]=mesh(shape,true); crew[i].visible=true; place(crew[i],shape) })
+    figures.forEach((shape,i)=>{ crew[i].visible=true; place(crew[i],shape) })
     for(let i=figures.length;i<crew.length;i++) crew[i].visible=false
     const color=colors[severity]||colors.normal, room=rooms[Math.max(0,Math.min(3,roomIndex))]
     sprite.position.set(room.x,2.07,room.z)

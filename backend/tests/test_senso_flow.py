@@ -4,7 +4,7 @@ from pwdlib import PasswordHash
 from sqlalchemy import select
 
 from app.db.session import make_engine
-from app.models import Alert, Event, Residence, Simulation, User
+from app.models import Alert, Device, Event, Residence, Room, Simulation, User
 from app.services.demo import populate_demo_history
 from app.services.residence import create_residence
 from app.services.simulation import advance_simulation
@@ -115,7 +115,7 @@ def test_only_postgresql_senso_is_accepted():
 
     for database_url in (
         "mysql+pymysql://senso:secret@localhost/senso",
-        "postgresql+psycopg://senso:secret@localhost:5432/triton",
+        "postgresql+psycopg://senso:secret@localhost:5432/outro_banco",
     ):
         try:
             Settings(app_env="development", database_url=database_url)
@@ -290,3 +290,21 @@ def test_each_scenario_completes_with_persisted_events(client, database):
                 assert len(milestones) == 5
                 assert all(event.details['source'] == 'roteiro_simulado' for event in milestones)
                 assert all(event.details['external_action'] is False for event in milestones)
+                kitchen = db.scalar(select(Room).where(Room.residence_id == residence_id, Room.name == 'Cozinha'))
+                assert all(event.room_id == kitchen.id for event in milestones)
+
+
+def test_scenario_rejects_missing_required_sensor_without_starting(client, database):
+    _, residence_id = seed_account(database)
+    assert client.post('/auth/login', json={'email': 'demo@senso.local', 'password': 'Senso-Demo-2026!'}).status_code == 200
+    with database() as db:
+        kitchen = db.scalar(select(Room).where(Room.residence_id == residence_id, Room.name == 'Cozinha'))
+        sensor = db.scalar(select(Device).where(Device.residence_id == residence_id, Device.room_id == kitchen.id, Device.device_type == 'presenca'))
+        db.delete(sensor)
+        db.commit()
+    response = client.post('/simulation/run', json={'scenario': 'fall'})
+    assert response.status_code == 409
+    with database() as db:
+        run = db.scalar(select(Simulation).where(Simulation.residence_id == residence_id))
+        assert run.status == 'pausado'
+        assert run.run_token is None

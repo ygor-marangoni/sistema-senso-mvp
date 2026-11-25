@@ -14,15 +14,17 @@ Cloudflare documenta suporte a FastAPI em Python Workers, mas o exemplo atual re
 
 ## Estado da publicação
 
+Antes de expor o backend à internet, atualize e valide as dependências Python em uma instalação limpa. As versões atuais incluem Starlette afetado por [GHSA-86qp-5c8j-p5mr](https://github.com/advisories/GHSA-86qp-5c8j-p5mr) e PyJWT afetado por [GHSA-jq35-7prp-9v3f](https://github.com/advisories/GHSA-jq35-7prp-9v3f). Os padrões de exploração descritos não foram identificados na implementação atual, mas isso não substitui a atualização e os testes. O build Vite e a auditoria em navegador também precisam ser executados antes do deploy.
+
 - O repositório privado `ygor-marangoni/sistema-senso-mvp` é a origem da publicação.
 - O diretório `backend` contém um Dockerfile para o serviço FastAPI no Northflank.
-- Os recursos remotos ainda precisam ser criados no painel autenticado; esta execução não consegue acessar a sessão visual do navegador do responsável.
+- O projeto Pages `sistema-senso-mvp` foi criado por upload direto; a API e o PostgreSQL Northflank ainda precisam ser criados no painel autenticado.
 - URLs, domínio, PostgreSQL remoto e segredos de produção só poderão ser registrados depois que os recursos forem criados no painel. Não coloque seus valores neste arquivo.
 - Use apenas o plano Sandbox gratuito e a região `US Central`; a região South America East exige upgrade. Não selecione Pay as you go nem habilite faturamento.
 
 ## Cloudflare Pages
 
-Crie o projeto Pages após vincular o repositório autorizado. Use estas configurações:
+O projeto Pages existente foi criado para upload direto e ainda não está vinculado ao GitHub. Para build integrado ao GitHub é necessário configurar um projeto vinculado pelo painel. No projeto por upload direto, execute o build e publique com Wrangler a partir de `frontend`, garantindo que o diretório `functions` seja incluído. Use estas configurações:
 
 | Campo | Valor |
 |---|---|
@@ -30,11 +32,12 @@ Crie o projeto Pages após vincular o repositório autorizado. Use estas configu
 | Comando de build | `npm run build` |
 | Diretório de saída | `dist` |
 | Versão Node | 20 ou superior |
-| Variável de build | `VITE_API_URL=https://<host-da-api>` |
+| Variável de build | `VITE_API_URL=https://sistema-senso-mvp.pages.dev/api` |
+| Variável de runtime Pages | `SENSO_API_ORIGIN=https://<host-northflank>` |
 
 Pages documenta `npm run build` e `dist` para React/Vite. O fallback SPA padrão atende rotas sem arquivo correspondente quando não há `404.html` na raiz, que é o caso deste projeto. [Build React/Vite no Pages](https://developers.cloudflare.com/pages/configuration/build-configuration/), [fallback SPA do Pages](https://developers.cloudflare.com/pages/configuration/serving-pages/).
 
-Configure `VITE_API_URL` no ambiente de produção do Pages com a origem HTTPS real da API, sem credenciais. O Vite valida a variável no build e recusa origem HTTP ou localhost. Variáveis `VITE_` entram no JavaScript público; não coloque nelas segredo, senha, token privado ou `DATABASE_URL`.
+O navegador usa `/api` na mesma origem do Pages. A Function `frontend/functions/api/[[path]].js` encaminha as chamadas à origem HTTPS definida em `SENSO_API_ORIGIN`, preservando cookies e o cabeçalho `Origin`. Configure no Northflank `CORS_ORIGINS=https://sistema-senso-mvp.pages.dev`. As variáveis `VITE_` entram no JavaScript público; não coloque nelas segredo, senha, token privado ou `DATABASE_URL`. Configure a origem da API somente depois que o serviço Northflank existir.
 
 Para reproduzir localmente o build de produção no PowerShell, use uma origem HTTPS de teste e saiba que a API desse endereço não será validada pelo comando:
 
@@ -65,7 +68,7 @@ O orçamento de até US$ 20/mês é uma cota de uso, não garantia de que qualqu
 
 O serviço Northflank usa o Dockerfile em `backend/Dockerfile`, com contexto `backend`. O container instala `requirements.txt`, aplica migrações Alembic e inicia Uvicorn na porta `PORT` (8001 por padrão).
 
-Confirme no painel que o recurso é novo, privado, na região gratuita e que `DATABASE_URL` referencia o banco Northflank recém-criado `senso` antes de deixar o primeiro deploy aplicar migrações. Não use o banco Triton nem o PostgreSQL local como banco de produção.
+Confirme no painel que o recurso é novo, privado, na região gratuita e que `DATABASE_URL` referencia o banco Northflank recém-criado `senso` antes de deixar o primeiro deploy aplicar migrações. Não use bancos de outros projetos nem o PostgreSQL local como banco de produção.
 
 Configure as variáveis no serviço de API:
 
@@ -82,7 +85,7 @@ Configure as variáveis no serviço de API:
 
 Não habilite o login demonstrativo compartilhado em produção. O front-end remove o atalho e os valores preenchidos no build de produção; a API também recusa a conta fixa e a rota de reinicialização quando `DEMO_LOGIN_ENABLED=false`. O script `load_demo.py` igualmente se recusa a criar essa conta nesse ambiente.
 
-O cookie usa autenticação `HttpOnly` e configuração `SameSite=Lax`; front-end e API em subdomínios do mesmo domínio registrável permanecem no mesmo site. Além do CORS, a API exige `Origin` igual à origem HTTPS configurada para todas as requisições que alteram dados em ambientes compartilhados. Mantenha `withCredentials` habilitado, permita somente a origem exata do front-end em CORS e sirva ambos por HTTPS. Clientes não navegador também precisam enviar essa origem. Não use wildcard com credenciais.
+O cookie usa autenticação `HttpOnly` e configuração `SameSite=Lax`. A Function do Pages mantém as requisições do navegador na mesma origem e encaminha o cookie à API. A API exige `Origin` igual à origem HTTPS configurada para requisições que alteram dados em ambientes compartilhados. Mantenha `withCredentials` habilitado, permita somente a origem exata do front-end em CORS e sirva ambos por HTTPS. Clientes não navegador também precisam enviar essa origem. Não use wildcard com credenciais.
 
 `/health/live` indica que o processo responde; `/health` e `/health/ready` executam `SELECT 1` e indicam se a API consegue usar o banco. Em produção, `/docs`, `/redoc` e `/openapi.json` ficam desativados. Configure o monitor do provedor com `/health/ready` para readiness e `/health/live` para liveness.
 

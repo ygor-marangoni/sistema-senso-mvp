@@ -9,8 +9,11 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("users", sa.Column("phone", sa.String(40), server_default="", nullable=False))
-    op.add_column("users", sa.Column("cpf", sa.String(11), server_default="", nullable=False))
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("users")}
+    if "phone" not in columns:
+        op.add_column("users", sa.Column("phone", sa.String(40), server_default="", nullable=False))
+    if "cpf" not in columns:
+        op.add_column("users", sa.Column("cpf", sa.String(11), server_default="", nullable=False))
 
 
 def downgrade():
