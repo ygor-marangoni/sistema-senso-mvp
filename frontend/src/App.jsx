@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Activity, ArrowRight, Bell, CalendarClock, CalendarDays, Cpu, Eye, EyeOff, House, LayoutDashboard, LogOut, Menu, PhoneCall, PlayCircle, Settings, X } from 'lucide-react'
 import { errorMessage } from './api/client'
 import AuthHero from './components/AuthHero'
+import EmergencyDialog from './components/EmergencyDialog'
 import BrandMark from './components/BrandMark'
 import Toast from './components/Toast'
 import { appointmentService, authService, medicationService, monitoringService, simulationService } from './services/senso'
@@ -59,38 +60,6 @@ function AuthPage({ onLogin, busy, authError, clearError }) {
     </section>
     <AuthHero />
   </main>
-}
-
-function EmergencyDialog({ criticalAlert, onClose, onOpenAlerts, onOpenContacts }) {
-  const closeButton = useRef(null)
-  useEffect(() => {
-    const previousFocus = document.activeElement
-    const previousOverflow = document.body.style.overflow
-    const closeOnEscape = (event) => { if (event.key === 'Escape') onClose() }
-    document.body.style.overflow = 'hidden'
-    document.addEventListener('keydown', closeOnEscape)
-    closeButton.current?.focus()
-    return () => {
-      document.body.style.overflow = previousOverflow
-      document.removeEventListener('keydown', closeOnEscape)
-      previousFocus?.focus?.()
-    }
-  }, [])
-
-  return <div className="emergency-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="emergency-dialog" role="dialog" aria-modal="true" aria-labelledby="emergency-title">
-      <button ref={closeButton} type="button" className="icon-button emergency-close" onClick={onClose} aria-label="Fechar"><X size={19} /></button>
-      <span className="emergency-dialog-icon"><PhoneCall size={21} /></span>
-      <span className="eyebrow">ACESSO RÁPIDO</span>
-      <h2 id="emergency-title">Precisa de ajuda?</h2>
-      {criticalAlert ? <div className="emergency-current-alert"><b>Ocorrência crítica aberta</b><span>{criticalAlert.title}</span></div> : <p className="emergency-dialog-copy">Consulte as ocorrências da residência ou os contatos de confiança cadastrados.</p>}
-      <p className="emergency-disclaimer">O Senso não realiza chamadas nem envia mensagens. Em uma emergência real, contate diretamente os serviços locais.</p>
-      <div className="emergency-dialog-actions">
-        <button className="button primary" onClick={onOpenAlerts}>Abrir alertas <ArrowRight size={16} /></button>
-        <button className="button secondary" onClick={onOpenContacts}>Ver contatos de confiança</button>
-      </div>
-    </section>
-  </div>
 }
 
 function NotificationBell({ alerts = [], alertCount, onOpenAlerts }) {
@@ -165,6 +134,10 @@ function App() {
   const pollingRef = useRef(false)
 
   const notify = useCallback((message, kind = 'success') => setToast({ message, kind }), [])
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [page])
 
   useEffect(() => { try { sessionStorage.setItem('senso_current_page', page) } catch { /* storage may be disabled */ } }, [page])
 
@@ -365,6 +338,7 @@ function App() {
   }
 
   function navigate(next) {
+    if (next === page) window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     setPage(next)
     setMobileMenuOpen(false)
   }
@@ -392,7 +366,7 @@ function App() {
 
   return <div className="app-shell">
     <aside className={`sidebar${mobileMenuOpen ? ' is-open' : ''}`}>
-      <div className="sidebar-brand-row"><BrandMark /><button className="icon-button close-mobile" onClick={() => setMobileMenuOpen(false)} aria-label="Fechar navegação"><X size={19} /></button></div>
+      <div className="sidebar-brand-row"><button type="button" className="sidebar-home-button" onClick={() => navigate('overview')} aria-label="Ir para a visão geral"><BrandMark /></button><button className="icon-button close-mobile" onClick={() => setMobileMenuOpen(false)} aria-label="Fechar navegação"><X size={19} /></button></div>
       <div className="residence-switch-card"><img className="residence-avatar" src={residentAvatar} alt="" /><span className="residence-switch-copy"><small>ACOMPANHANDO</small><b>{resident?.name || 'Residência'}</b><span>{resident?.resident_name || 'Morador'}</span></span></div>
       <nav className="side-nav" aria-label="Navegação principal">
         <span className="nav-section-label">MONITORAMENTO</span>
@@ -416,7 +390,7 @@ function App() {
         {view}
       </div>
     </main>
-    {emergencyOpen && <EmergencyDialog criticalAlert={criticalAlert} onClose={() => setEmergencyOpen(false)} onOpenAlerts={() => { setEmergencyOpen(false); navigate('alerts') }} onOpenContacts={() => { setEmergencyOpen(false); navigate('settings') }} />}
+    {emergencyOpen && <EmergencyDialog criticalAlert={criticalAlert} residence={resident} onClose={() => setEmergencyOpen(false)} onOpenAlerts={() => { setEmergencyOpen(false); navigate('alerts') }} onOpenContacts={() => { setEmergencyOpen(false); navigate('settings') }} />}
   </div>
 }
 

@@ -7,7 +7,7 @@ const visualTime = createVisualClock()
 let angle=.68,elev=.75,zoom=1,drag=null;
 const colors={normal:'#278563',analysis:'#ad7b2c',attention:'#ad7b2c',critical:'#b8463e',response:'#277e86'};
 const current=()=>[0,'',roomIndex,severity];
-const canvas=document.createElement('canvas');canvas.tabIndex=0;canvas.setAttribute('aria-label','Maquete ilustrativa da residência. Use as setas para girar.');Object.assign(canvas.style,{width:'100%',height:'100%',display:'block',touchAction:'none'});const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas 2D indisponível');container.appendChild(canvas);
+const canvas=document.createElement('canvas');canvas.tabIndex=0;canvas.setAttribute('aria-label','Maquete ilustrativa da residência. Use as setas para girar.');Object.assign(canvas.style,{width:'100%',height:'100%',display:'block'});const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas 2D indisponível');container.appendChild(canvas);
 const rooms=[{name:'Sala',x:-2.7,z:2.0},{name:'Cozinha',x:2.7,z:2.0},{name:'Quarto',x:-2.7,z:-2.1},{name:'Banheiro',x:2.7,z:-2.1}];
 // Keep the sensor pucks on unobstructed floor patches in the four rooms.
 const sensors=[[-.42,3.65],[4.9,2.25],[-.55,-2.85],[.4,-2.1]];
@@ -107,14 +107,14 @@ const observer=new ResizeObserver(redraw);observer.observe(container)
 function pointerDown(e){drag={x:e.clientX,y:e.clientY,a:angle,b:elev};canvas.setPointerCapture(e.pointerId)}
 function pointerMove(e){if(drag){angle=drag.a+(e.clientX-drag.x)*.007;elev=Math.max(.30,Math.min(1.54,drag.b+(e.clientY-drag.y)*.005));redraw()}}
 function pointerUp(){drag=null}
-function wheel(e){e.preventDefault();zoom=Math.max(.72,Math.min(1.7,zoom-e.deltaY*.001));redraw()}
 function key(e){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();angle+=(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0)*.13;elev=Math.max(.3,Math.min(1.54,elev+(e.key==='ArrowUp'?1:e.key==='ArrowDown'?-1:0)*.1));redraw()}}
-canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('wheel',wheel,{passive:false});canvas.addEventListener('keydown',key)
+canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('keydown',key)
 redraw()
 return {
  update(state){const nextScenario=['fall','normal','idle','heat','offline','routine'].includes(state.scenario)?state.scenario:'fall',nextElapsed=Math.max(0,state.elapsed||0),nextRoom=Math.max(0,Math.min(3,state.roomIndex??0)),nextSeverity=colors[state.severity]?state.severity:'normal',nextOffline=!!state.offline,nextClock=state.visualClock??nextElapsed,nextRunning=!!state.running,nextSpeed=Math.max(.5,Math.min(2,state.speed||1)),scenarioChanged=nextScenario!==scenario;if(!scenarioChanged&&state.runId===currentRunId&&nextElapsed===targetElapsed&&nextRoom===roomIndex&&nextSeverity===severity&&nextOffline===offline&&nextClock===visualClock&&nextRunning===animationActive&&nextSpeed===simulationSpeed)return;currentRunId=state.runId;scenario=nextScenario;targetElapsed=nextElapsed;roomIndex=nextRoom;severity=nextSeverity;offline=nextOffline;visualClock=nextClock;animationActive=nextRunning;simulationSpeed=nextSpeed;visualTime.update({runId:state.runId,scenario:nextScenario,elapsed:nextElapsed,running:nextRunning,speed:nextSpeed});redraw()},
+ zoomBy(amount){zoom=Math.max(.72,Math.min(1.7,zoom+amount));redraw()},
  resetCamera(){angle=.68;elev=.75;zoom=1;redraw()},
  topView(){elev=1.54;redraw()},
- dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',pointerUp);canvas.removeEventListener('wheel',wheel);canvas.removeEventListener('keydown',key);canvas.remove();rasterCache=null;frameBuffer=null;frameDepth=null;frameImage=null}
+ dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',pointerUp);canvas.removeEventListener('keydown',key);canvas.remove();rasterCache=null;frameBuffer=null;frameDepth=null;frameImage=null}
 }
 }

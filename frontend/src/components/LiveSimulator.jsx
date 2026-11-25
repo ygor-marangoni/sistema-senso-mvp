@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Maximize2, Pause, Play, RotateCcw, SkipForward } from 'lucide-react'
+import { Maximize2, Pause, Play, RotateCcw, SkipForward, ZoomIn, ZoomOut } from 'lucide-react'
 import { api } from '../api/client'
 import { simulationService } from '../services/senso'
 import { ActivityChart, EnvironmentChart } from './DataCharts'
@@ -89,8 +89,8 @@ function ResidenceScene({ snapshot }) {
     <div className="live-scene" ref={host} role="img" aria-label="Maquete ilustrativa da residência com Dona Helena, sensores e a equipe de atendimento no roteiro simulado." />
     {error && <div className="live-scene-error" role="status">{error}</div>}
     <div className="live-scene-label"><i /> {fallback ? 'Visualização alternativa · simulação' : 'Ambiente simulado'}</div>
-    <div className="live-camera" aria-label="Controles da visualização"><button type="button" onClick={() => scene.current?.topView()}>Planta</button><button type="button" onClick={() => scene.current?.resetCamera()}>Restaurar câmera</button></div>
-    <span className="live-scene-hint">Arraste para girar · role para aproximar</span>
+    <div className="live-camera" role="group" aria-label="Controles da visualização"><button type="button" onClick={() => scene.current?.zoomBy(-.15)} aria-label="Afastar visualização" title="Afastar"><ZoomOut size={16} /></button><button type="button" onClick={() => scene.current?.zoomBy(.15)} aria-label="Aproximar visualização" title="Aproximar"><ZoomIn size={16} /></button><button type="button" onClick={() => scene.current?.topView()}>Planta</button><button type="button" onClick={() => scene.current?.resetCamera()}>Restaurar câmera</button></div>
+    <span className="live-scene-hint">Arraste para girar · use os controles para aproximar</span>
   </div>
 }
 

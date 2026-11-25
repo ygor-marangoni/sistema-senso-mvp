@@ -87,7 +87,7 @@ function responders(time=elapsed, activeScenario=scenario){
 
   const canvas = document.createElement('canvas')
   canvas.tabIndex = 0
-  Object.assign(canvas.style, {width:'100%',height:'100%',display:'block',touchAction:'none'})
+  Object.assign(canvas.style, {width:'100%',height:'100%',display:'block'})
   canvas.setAttribute('aria-label', 'Maquete ilustrativa da residência. Use as setas para girar a visualização.')
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
@@ -176,10 +176,9 @@ function responders(time=elapsed, activeScenario=scenario){
   function pointerDown(e){drag={x:e.clientX,y:e.clientY,a:angle,b:elev};canvas.setPointerCapture(e.pointerId);requestDraw()}
   function pointerMove(e){if(drag){angle=drag.a+(e.clientX-drag.x)*.007;elev=Math.max(.30,Math.min(1.54,drag.b+(e.clientY-drag.y)*.005));requestDraw()}}
   function pointerUp(){drag=null}
-  function wheel(e){e.preventDefault();zoom=Math.max(.72,Math.min(1.7,zoom-e.deltaY*.001));resize()}
   function key(e){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();angle+=(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0)*.13;elev=Math.max(.3,Math.min(1.54,elev+(e.key==='ArrowUp'?1:e.key==='ArrowDown'?-1:0)*.1));requestDraw()}}
   function lost(e){e.preventDefault();container.dispatchEvent(new CustomEvent('senso-webgl-lost'))}
-  canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('wheel',wheel,{passive:false});canvas.addEventListener('keydown',key);canvas.addEventListener('webglcontextlost',lost);document.addEventListener('visibilitychange',onVisibilityChange)
+  canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);canvas.addEventListener('keydown',key);canvas.addEventListener('webglcontextlost',lost);document.addEventListener('visibilitychange',onVisibilityChange)
   resize();requestDraw()
   return {
     update(state){
@@ -192,8 +191,9 @@ function responders(time=elapsed, activeScenario=scenario){
       visualTime.update({runId:state.runId,scenario:nextScenario,elapsed:nextElapsed,running:nextRunning,speed:nextSpeed})
       if(changed||animationActive)requestDraw()
     },
+    zoomBy(amount){zoom=Math.max(.72,Math.min(1.7,zoom+amount));resize()},
     resetCamera(){angle=.68;elev=.75;zoom=1;resize()},
     topView(){elev=1.54;resize()},
-    dispose(){destroyed=true;cancelAnimationFrame(frame);document.removeEventListener('visibilitychange',onVisibilityChange);observer.disconnect();canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',pointerUp);canvas.removeEventListener('wheel',wheel);canvas.removeEventListener('keydown',key);canvas.removeEventListener('webglcontextlost',lost);scene.traverse(object=>{if(object.isMesh||object.isSprite){if(object.material&&!Array.from(materials.values()).includes(object.material)) {const list=Array.isArray(object.material)?object.material:[object.material];list.forEach(m=>m.dispose())}}});Object.values(geos).forEach(g=>g.dispose());dotGeometry.dispose();ringGeometry.dispose();materials.forEach(m=>m.dispose());texture.dispose();renderer.dispose();canvas.remove()}
+    dispose(){destroyed=true;cancelAnimationFrame(frame);document.removeEventListener('visibilitychange',onVisibilityChange);observer.disconnect();canvas.removeEventListener('pointerdown',pointerDown);canvas.removeEventListener('pointermove',pointerMove);canvas.removeEventListener('pointerup',pointerUp);canvas.removeEventListener('pointercancel',pointerUp);canvas.removeEventListener('keydown',key);canvas.removeEventListener('webglcontextlost',lost);scene.traverse(object=>{if(object.isMesh||object.isSprite){if(object.material&&!Array.from(materials.values()).includes(object.material)) {const list=Array.isArray(object.material)?object.material:[object.material];list.forEach(m=>m.dispose())}}});Object.values(geos).forEach(g=>g.dispose());dotGeometry.dispose();ringGeometry.dispose();materials.forEach(m=>m.dispose());texture.dispose();renderer.dispose();canvas.remove()}
   }
 }
